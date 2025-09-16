@@ -1,14 +1,8 @@
+# backend/app/schemas/user.py
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
-from enum import Enum
 
-class Role(str, Enum):
-    ADMIN = "admin"
-    DRIVER = "driver"
-    CONDUCTOR = "conductor"
-    PASSENGER = "passenger"
-
-# ---------------- Admin ----------------
+# Admin
 class AdminCreate(BaseModel):
     name: str
     email: Optional[EmailStr]
@@ -18,7 +12,7 @@ class AdminResponse(AdminCreate):
     id: str
     device_ids: Optional[List[str]] = []
 
-# ---------------- Driver ----------------
+# Driver
 class DriverCreate(BaseModel):
     name: str
     email: Optional[EmailStr]
@@ -29,7 +23,7 @@ class DriverResponse(DriverCreate):
     id: str
     device_ids: Optional[List[str]] = []
 
-# ---------------- Conductor ----------------
+# Conductor
 class ConductorCreate(BaseModel):
     name: str
     email: Optional[EmailStr]
@@ -39,7 +33,7 @@ class ConductorResponse(ConductorCreate):
     id: str
     device_ids: Optional[List[str]] = []
 
-# ---------------- Passenger ----------------
+# Passenger
 class PassengerCreate(BaseModel):
     name: str
     phone: str

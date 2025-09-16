@@ -1,39 +1,34 @@
+# backend/app/crud/driver.py
 from app.config import db
 from bson import ObjectId
 
-collection = db["drivers"]
+DRIVER_COLLECTION = db.drivers
 
-async def is_phone_exists(phone: str) -> bool:
-    if await collection.find_one({"phone": phone}):
-        return True
-    for col in ["admins", "conductors", "passengers"]:
-        if await db[col].find_one({"phone": phone}):
-            return True
-    return False
+def serialize(doc):
+    if not doc:
+        return None
+    doc["id"] = str(doc["_id"])
+    doc.pop("_id", None)
+    return doc
 
 async def create_driver(data: dict):
-    if await is_phone_exists(data["phone"]):
-        raise Exception("Phone number already exists")
-    result = await collection.insert_one(data)
+    if await db.admins.find_one({"phone": data["phone"]}) or \
+       await db.drivers.find_one({"phone": data["phone"]}) or \
+       await db.conductors.find_one({"phone": data["phone"]}) or \
+       await db.passengers.find_one({"phone": data["phone"]}):
+        raise ValueError("Phone number already exists")
+    result = await DRIVER_COLLECTION.insert_one(data)
     data["id"] = str(result.inserted_id)
     return data
 
 async def list_drivers():
+    cursor = DRIVER_COLLECTION.find({})
     drivers = []
-    async for driver in collection.find():
-        driver["id"] = str(driver["_id"])
-        driver.pop("_id", None)
-        # Remove irrelevant fields
-        driver.pop("assigned_vehicle_id", None)
-        driver.pop("route_id", None)
-        drivers.append(driver)
+    async for doc in cursor:
+        doc.pop("assigned_vehicle_id", None)
+        drivers.append(serialize(doc))
     return drivers
 
 async def get_driver_by_id(driver_id: str):
-    driver = await collection.find_one({"_id": ObjectId(driver_id)})
-    if driver:
-        driver["id"] = str(driver["_id"])
-        driver.pop("_id", None)
-        driver.pop("assigned_vehicle_id", None)
-        driver.pop("route_id", None)
-    return driver
+    doc = await DRIVER_COLLECTION.find_one({"_id": ObjectId(driver_id)})
+    return serialize(doc)

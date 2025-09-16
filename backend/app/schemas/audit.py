@@ -1,10 +1,9 @@
-# backend/app/models/audit.py
+# backend/app/schemas/audit.py
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-class AuditEvent(BaseModel):
-    id: Optional[str]
+class AuditEventCreate(BaseModel):
     event_type: str
     user_id: str
     session_id: Optional[str]
@@ -13,4 +12,7 @@ class AuditEvent(BaseModel):
     passenger_id: Optional[str]
     description: Optional[str]
     event_hash: str
-    timestamp: Optional[datetime]
+
+class AuditEventResponse(AuditEventCreate):
+    id: str
+    timestamp: datetime

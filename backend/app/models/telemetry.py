@@ -1,11 +1,14 @@
+# backend/app/models/telemetry.py
 from pydantic import BaseModel
-from datetime import datetime
 from typing import Optional
+from datetime import datetime
 
 class Telemetry(BaseModel):
     id: Optional[str]
-    session_id: str
-    latitude: float
-    longitude: float
-    timestamp: datetime
-    speed: Optional[float]
+    vehicle_id: str
+    user_id: str
+    gps_lat: float
+    gps_long: float
+    speed: float
+    signature: str
+    timestamp: Optional[datetime]
