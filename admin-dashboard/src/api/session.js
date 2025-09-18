@@ -1,28 +1,33 @@
-import axios from "axios";
+// src/api/session.js
+import client from "./client";
 
-const API_BASE = "http://127.0.0.1:8000/session";
-
-// ---------------- Create / Start Session ----------------
-export const startSession = async (session) => {
-  const response = await axios.post(`${API_BASE}/start`, session);
-  return response.data;
-};
+const BASE = "/session";
 
 // ---------------- List Sessions ----------------
-export const getSessions = async (query = "") => {
-  const url = query ? `${API_BASE}/?${query}` : `${API_BASE}/`;
-  const response = await axios.get(url);
-  return response.data;
+export const getSessions = async () => {
+  const res = await client.get(`${BASE}/`);
+  return res.data;
 };
 
-// ---------------- Get Session by ID ----------------
-export const getSessionById = async (sessionId) => {
-  const response = await axios.get(`${API_BASE}/${sessionId}`);
-  return response.data;
+// ---------------- Create / Start Session ----------------
+export const createSession = async (sessionData) => {
+  const res = await client.post(`${BASE}/start`, sessionData);
+  return res.data;
+};
+
+// ---------------- Update Session ----------------
+export const updateSession = async (id, sessionData) => {
+  const res = await client.put(`${BASE}/${id}`, sessionData);
+  return res.data;
 };
 
 // ---------------- Delete Session ----------------
 export const deleteSession = async (id) => {
-  const response = await axios.delete(`${API_BASE}/${id}`);
-  return response.data;
+  await client.delete(`${BASE}/${id}`);
+};
+
+// ---------------- Get Session by ID ----------------
+export const getSessionById = async (id) => {
+  const res = await client.get(`${BASE}/${id}`);
+  return res.data;
 };

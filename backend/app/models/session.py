@@ -10,3 +10,4 @@ class Session(BaseModel):
     vehicle_id: str
     route_id: str
     start_time: datetime
+    end_time: Optional[datetime] = None  # <-- NEW FIELD

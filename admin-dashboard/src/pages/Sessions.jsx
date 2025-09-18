@@ -1,175 +1,202 @@
 import React, { useEffect, useState } from "react";
-import { getSessions, startSession, deleteSession } from "../api/session";
-import DeleteIcon from "@mui/icons-material/Delete";
-import IconButton from "@mui/material/IconButton";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Typography,
+  Alert,
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
+import {
+  getSessions,
+  createSession,
+  updateSession,
+  deleteSession,
+} from "../api/session";
 
-const getNowISOString = () => {
-  const now = new Date();
-  now.setSeconds(0, 0);
-  return now.toISOString().slice(0, 16);
-};
-
-const Sessions = () => {
+export default function Sessions() {
   const [sessions, setSessions] = useState([]);
-  const [newSession, setNewSession] = useState({
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
     driver_id: "",
     conductor_id: "",
     vehicle_id: "",
-    start_time: getNowISOString(),
+    start_time: "",
   });
-  const [search, setSearch] = useState({
-    driver_id: "",
-    conductor_id: "",
-    vehicle_id: "",
-  });
+  const [error, setError] = useState("");
+  const [editId, setEditId] = useState(null);
 
   const fetchSessions = async () => {
-    const params = {};
-    if (search.driver_id) params.driver_id = search.driver_id;
-    if (search.conductor_id) params.conductor_id = search.conductor_id;
-    if (search.vehicle_id) params.vehicle_id = search.vehicle_id;
-    params.only_live_upcoming = true;
-    const query = new URLSearchParams(params).toString();
-    const data = await getSessions(query);
-    setSessions(data);
+    try {
+      const data = await getSessions();
+      setSessions(data);
+    } catch (err) {
+      console.error("Failed to fetch sessions:", err);
+    }
   };
 
   useEffect(() => {
     fetchSessions();
-    // eslint-disable-next-line
-  }, [search]);
-
-  // Reset start_time to now when opening the form
-  useEffect(() => {
-    setNewSession((prev) => ({
-      ...prev,
-      start_time: getNowISOString(),
-    }));
   }, []);
 
-  const handleStartSession = async () => {
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
     try {
-      await startSession(newSession);
-      fetchSessions();
-      alert("Session started successfully!");
-      setNewSession({
+      setError("");
+      if (editId) {
+        await updateSession(editId, formData);
+      } else {
+        await createSession(formData);
+      }
+      setOpen(false);
+      setFormData({
         driver_id: "",
         conductor_id: "",
         vehicle_id: "",
-        start_time: getNowISOString(),
+        start_time: "",
       });
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.detail || "Failed to start session.");
-    }
-  };
-
-  const handleDeleteSession = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this session?")) return;
-    try {
-      await deleteSession(id);
+      setEditId(null);
       fetchSessions();
     } catch (err) {
-      alert("Failed to delete session.");
+      setError(err.response?.data?.detail || "Failed to save session");
     }
   };
 
+  const handleEdit = (row) => {
+    setFormData({
+      driver_id: row.driver_id,
+      conductor_id: row.conductor_id || "",
+      vehicle_id: row.vehicle_id,
+      start_time: row.start_time?.slice(0, 16), // format for datetime-local
+    });
+    setEditId(row.id);
+    setOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this session?")) {
+      await deleteSession(id);
+      fetchSessions();
+    }
+  };
+
+  const columns = [
+    { field: "id", headerName: "ID", width: 80 },
+    { field: "vehicle_id", headerName: "Vehicle ID", width: 120 },
+    { field: "driver_id", headerName: "Driver ID", width: 120 },
+    { field: "conductor_id", headerName: "Conductor ID", width: 140 },
+    { field: "route_id", headerName: "Route ID", width: 120 },
+    { field: "start_time", headerName: "Start Time", width: 200 },
+    { field: "end_time", headerName: "End Time", width: 200 }, // <-- NEW COLUMN
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 180,
+      renderCell: (params) => (
+        <>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => handleEdit(params.row)}
+            style={{ marginRight: 8 }}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => handleDelete(params.row.id)}
+          >
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
+
   return (
-    <div>
-      <h1>Sessions Management</h1>
-
-      <div>
-        <h2>Search Sessions</h2>
-        <input
-          type="text"
-          placeholder="Driver ID"
-          value={search.driver_id}
-          onChange={(e) => setSearch({ ...search, driver_id: e.target.value })}
+    <div className="p-4">
+      <Typography variant="h5" gutterBottom>
+        Session Management
+      </Typography>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => {
+          setFormData({
+            driver_id: "",
+            conductor_id: "",
+            vehicle_id: "",
+            start_time: "",
+          });
+          setEditId(null);
+          setOpen(true);
+        }}
+      >
+        Add Session
+      </Button>
+      <div style={{ height: 400, marginTop: 20 }}>
+        <DataGrid
+          rows={sessions}
+          columns={columns}
+          getRowId={(row) => row.id}
+          disableRowSelectionOnClick
         />
-        <input
-          type="text"
-          placeholder="Conductor ID"
-          value={search.conductor_id}
-          onChange={(e) =>
-            setSearch({ ...search, conductor_id: e.target.value })
-          }
-        />
-        <input
-          type="text"
-          placeholder="Vehicle ID"
-          value={search.vehicle_id}
-          onChange={(e) =>
-            setSearch({ ...search, vehicle_id: e.target.value })
-          }
-        />
-        <button onClick={fetchSessions}>Search</button>
       </div>
 
-      <div>
-        <h2>Start Session</h2>
-        <input
-          type="text"
-          placeholder="Driver ID"
-          value={newSession.driver_id}
-          onChange={(e) =>
-            setNewSession({ ...newSession, driver_id: e.target.value })
-          }
-        />
-        <input
-          type="text"
-          placeholder="Conductor ID"
-          value={newSession.conductor_id}
-          onChange={(e) =>
-            setNewSession({ ...newSession, conductor_id: e.target.value })
-          }
-        />
-        <input
-          type="text"
-          placeholder="Vehicle ID"
-          value={newSession.vehicle_id}
-          onChange={(e) =>
-            setNewSession({ ...newSession, vehicle_id: e.target.value })
-          }
-        />
-        <input
-          type="datetime-local"
-          value={newSession.start_time}
-          onChange={(e) =>
-            setNewSession({ ...newSession, start_time: e.target.value })
-          }
-        />
-        <button onClick={handleStartSession}>Start Session</button>
-      </div>
-
-      <div>
-        <h2>Live & Upcoming Sessions</h2>
-        <ul>
-          {sessions.map((s) => (
-            <li
-              key={s.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              Vehicle: {s.vehicle_id}, Driver: {s.driver_id},{" "}
-              Conductor: {s.conductor_id || "N/A"}, Start: {s.start_time}
-              <IconButton
-                color="error"
-                onClick={() => handleDeleteSession(s.id)}
-                aria-label="delete"
-                size="small"
-                style={{ marginLeft: 8 }}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <Dialog open={open} onClose={() => setOpen(false)}>
+        <DialogTitle>{editId ? "Edit Session" : "Create Session"}</DialogTitle>
+        <DialogContent>
+          {error && <Alert severity="error">{error}</Alert>}
+          <TextField
+            margin="dense"
+            label="Driver ID"
+            name="driver_id"
+            fullWidth
+            value={formData.driver_id}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Conductor ID"
+            name="conductor_id"
+            fullWidth
+            value={formData.conductor_id}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Vehicle ID"
+            name="vehicle_id"
+            fullWidth
+            value={formData.vehicle_id}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Start Time"
+            name="start_time"
+            type="datetime-local"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            value={formData.start_time}
+            onChange={handleChange}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleSave} variant="contained" color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
-};
-
-export default Sessions;
+}
