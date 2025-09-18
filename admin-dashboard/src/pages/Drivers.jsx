@@ -33,6 +33,7 @@ export default function Drivers() {
   const [editId, setEditId] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [search, setSearch] = useState("");
+  const [idSearch, setIdSearch] = useState(""); // For ID search
 
   // Fetch drivers
   const fetchDrivers = async () => {
@@ -113,11 +114,16 @@ export default function Drivers() {
     fetchDrivers();
   };
 
-  // Filtered drivers based on search
+  // Filtered drivers based on idSearch and search
   const filteredDrivers = drivers.filter((driver) => {
+    const idQ = idSearch.trim();
     const q = search.toLowerCase();
+    // If idSearch is present, filter by id only
+    if (idQ) {
+      return driver.id.toString().includes(idQ);
+    }
+    // Otherwise, filter by name, phone, or license number
     return (
-      driver.id.toString().includes(q) ||
       driver.name.toLowerCase().includes(q) ||
       driver.phone.toLowerCase().includes(q) ||
       driver.license_number.toLowerCase().includes(q)
@@ -176,12 +182,22 @@ export default function Drivers() {
           Add Driver
         </Button>
         <TextField
+          label="Search by ID"
+          variant="outlined"
+          size="small"
+          value={idSearch}
+          onChange={(e) => setIdSearch(e.target.value)}
+          style={{ width: 100 }}
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+        />
+        <TextField
           label="Search by Name, Phone, or License"
           variant="outlined"
           size="small"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ minWidth: 300 }}
+          disabled={!!idSearch}
         />
       </div>
       <div style={{ height: 400, marginTop: 20 }}>

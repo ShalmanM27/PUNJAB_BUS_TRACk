@@ -32,6 +32,8 @@ export default function Conductors() {
   });
   const [editId, setEditId] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [search, setSearch] = useState(""); // For name, phone, email
+  const [idSearch, setIdSearch] = useState(""); // For ID search
 
   const fetchConductors = async () => {
     const data = await getConductors();
@@ -106,6 +108,22 @@ export default function Conductors() {
     fetchConductors();
   };
 
+  // Filtered conductors based on idSearch and search
+  const filteredConductors = conductors.filter((conductor) => {
+    const idQ = idSearch.trim();
+    const q = search.toLowerCase();
+    // If idSearch is present, filter by id only
+    if (idQ) {
+      return conductor.id.toString().includes(idQ);
+    }
+    // Otherwise, filter by name, phone, or email
+    return (
+      (conductor.name && conductor.name.toLowerCase().includes(q)) ||
+      (conductor.phone && conductor.phone.toLowerCase().includes(q)) ||
+      (conductor.email && conductor.email.toLowerCase().includes(q))
+    );
+  });
+
   const columns = [
     { field: "id", headerName: "ID", width: 80 },
     {
@@ -146,12 +164,39 @@ export default function Conductors() {
       <Typography variant="h4" gutterBottom>
         Conductor Management
       </Typography>
-      <Button variant="contained" onClick={() => handleOpen()}>
-        Add Conductor
-      </Button>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          marginBottom: 16,
+        }}
+      >
+        <Button variant="contained" onClick={() => handleOpen()}>
+          Add Conductor
+        </Button>
+        <TextField
+          label="Search by ID"
+          variant="outlined"
+          size="small"
+          value={idSearch}
+          onChange={(e) => setIdSearch(e.target.value)}
+          style={{ width: 100 }}
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+        />
+        <TextField
+          label="Search by Name, Phone, or Email"
+          variant="outlined"
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ minWidth: 300 }}
+          disabled={!!idSearch}
+        />
+      </div>
       <div style={{ height: 400, marginTop: 20 }}>
         <DataGrid
-          rows={conductors}
+          rows={filteredConductors}
           columns={columns}
           getRowId={(row) => row.id}
         />

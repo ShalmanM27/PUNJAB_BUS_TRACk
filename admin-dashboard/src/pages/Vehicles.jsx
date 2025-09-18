@@ -10,6 +10,8 @@ export default function Vehicles() {
   const [open, setOpen] = useState(false);
   const [vehicleData, setVehicleData] = useState({ registration_number: "", capacity: 0 });
   const [editingId, setEditingId] = useState(null);
+  const [search, setSearch] = useState(""); // For registration number, capacity
+  const [idSearch, setIdSearch] = useState(""); // For ID search
 
   const fetchVehicles = async () => {
     const data = await getVehicles();
@@ -48,6 +50,19 @@ export default function Vehicles() {
     fetchVehicles();
   };
 
+  // Filtered vehicles based on idSearch and search
+  const filteredVehicles = vehicles.filter((vehicle) => {
+    const idQ = idSearch.trim();
+    const q = search.toLowerCase();
+    if (idQ) {
+      return vehicle.id.toString().includes(idQ);
+    }
+    return (
+      (vehicle.registration_number && vehicle.registration_number.toLowerCase().includes(q)) ||
+      (vehicle.capacity && vehicle.capacity.toString().includes(q))
+    );
+  });
+
   const columns = [
     { field: "id", headerName: "ID", width: 80 },
     { field: "registration_number", headerName: "Registration", flex: 1 },
@@ -78,11 +93,38 @@ export default function Vehicles() {
       <Typography variant="h4" gutterBottom>
         Vehicle Management
       </Typography>
-      <Button variant="contained" color="primary" onClick={() => handleOpen()}>
-        Add Vehicle
-      </Button>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          marginBottom: 16,
+        }}
+      >
+        <Button variant="contained" color="primary" onClick={() => handleOpen()}>
+          Add Vehicle
+        </Button>
+        <TextField
+          label="Search by ID"
+          variant="outlined"
+          size="small"
+          value={idSearch}
+          onChange={(e) => setIdSearch(e.target.value)}
+          style={{ width: 100 }}
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+        />
+        <TextField
+          label="Search by Registration or Capacity"
+          variant="outlined"
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ minWidth: 250 }}
+          disabled={!!idSearch}
+        />
+      </div>
       <div style={{ height: 400, marginTop: 20 }}>
-        <DataGrid rows={vehicles} columns={columns} getRowId={(row) => row.id} />
+        <DataGrid rows={filteredVehicles} columns={columns} getRowId={(row) => row.id} />
       </div>
 
       <Dialog open={open} onClose={handleClose}>

@@ -32,6 +32,7 @@ export default function Routes() {
   });
   const [editId, setEditId] = useState(null);
   const [search, setSearch] = useState("");
+  const [idSearch, setIdSearch] = useState(""); // For ID search
 
   // Fetch routes
   const fetchRoutes = async () => {
@@ -125,14 +126,18 @@ export default function Routes() {
     });
   };
 
-  // Filtered routes based on search
+  // Filtered routes based on idSearch and search
   const filteredRoutes = routes.filter((route) => {
+    const idQ = idSearch.trim();
     const q = search.toLowerCase();
+    if (idQ) {
+      return route.id.toString().includes(idQ);
+    }
     return (
-      route.id.toString().includes(q) ||
+      (route.route_name && route.route_name.toLowerCase().includes(q)) ||
       (route.source && route.source.toLowerCase().includes(q)) ||
       (route.destination && route.destination.toLowerCase().includes(q)) ||
-      (route.vehicle_id && route.vehicle_id.toLowerCase().includes(q))
+      (route.vehicle_id && route.vehicle_id.toString().toLowerCase().includes(q))
     );
   });
 
@@ -188,12 +193,22 @@ export default function Routes() {
           Add Route
         </Button>
         <TextField
-          label="Search by Source, Destination, or Vehicle ID"
+          label="Search by ID"
+          variant="outlined"
+          size="small"
+          value={idSearch}
+          onChange={(e) => setIdSearch(e.target.value)}
+          style={{ width: 100 }}
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+        />
+        <TextField
+          label="Search by Route Name, Source, Destination, or Vehicle ID"
           variant="outlined"
           size="small"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ minWidth: 300 }}
+          disabled={!!idSearch}
         />
       </div>
       <div style={{ height: 400, marginTop: 20 }}>
