@@ -48,6 +48,7 @@ export default function Vehicles() {
   };
 
   const columns = [
+    { field: "id", headerName: "ID", width: 80 },
     { field: "registration_number", headerName: "Registration", flex: 1 },
     { field: "capacity", headerName: "Capacity", flex: 1 },
     { field: "current_driver_id", headerName: "Driver ID", flex: 1 },

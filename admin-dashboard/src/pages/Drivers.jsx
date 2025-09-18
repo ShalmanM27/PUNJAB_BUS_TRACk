@@ -9,6 +9,7 @@ import {
   TextField,
   Typography,
   Avatar,
+  IconButton,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -18,6 +19,7 @@ import {
   deleteDriver,
 } from "../api/driver";
 import defaultDriverImg from "../assets/default_driver.jpg";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function Drivers() {
   const [drivers, setDrivers] = useState([]);
@@ -145,9 +147,13 @@ export default function Drivers() {
       renderCell: (params) => (
         <>
           <Button onClick={() => handleOpen(params.row)}>Edit</Button>
-          <Button color="error" onClick={() => handleDelete(params.row.id)}>
-            Delete
-          </Button>
+          <IconButton
+            color="error"
+            onClick={() => handleDelete(params.row.id)}
+            aria-label="delete"
+          >
+            <DeleteIcon />
+          </IconButton>
         </>
       ),
     },

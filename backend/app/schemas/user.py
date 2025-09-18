@@ -35,12 +35,14 @@ class DriverResponse(BaseModel):
 class ConductorCreate(BaseModel):
     name: str
     phone: str
+    email: Optional[EmailStr] = None  # Added
     image: Optional[str] = None  # Added
 
 class ConductorResponse(BaseModel):
     id: str
     name: str
     phone: str
+    email: Optional[str] = None  # Added
     image: Optional[str] = None  # Added
 
 # ---------------- Passenger ----------------

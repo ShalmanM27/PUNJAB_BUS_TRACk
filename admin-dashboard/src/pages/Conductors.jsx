@@ -8,6 +8,8 @@ import {
   DialogTitle,
   TextField,
   Typography,
+  Avatar,
+  IconButton,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -16,6 +18,8 @@ import {
   updateConductor,
   deleteConductor,
 } from "../api/conductor";
+import defaultDriverImg from "../assets/default_driver.jpg";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function Conductors() {
   const [conductors, setConductors] = useState([]);
@@ -23,10 +27,11 @@ export default function Conductors() {
   const [form, setForm] = useState({
     name: "",
     phone: "",
-    employee_id: "",
-    route_id: "",
+    email: "",
+    image: "",
   });
   const [editId, setEditId] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
 
   const fetchConductors = async () => {
     const data = await getConductors();
@@ -42,24 +47,55 @@ export default function Conductors() {
       setForm({
         name: conductor.name,
         phone: conductor.phone,
-        employee_id: conductor.employee_id,
-        route_id: conductor.route_id || "",
+        email: conductor.email || "",
+        image: conductor.image || "",
       });
       setEditId(conductor.id);
+      setImageFile(null);
     } else {
-      setForm({ name: "", phone: "", employee_id: "", route_id: "" });
+      setForm({ name: "", phone: "", email: "", image: "" });
       setEditId(null);
+      setImageFile(null);
     }
     setOpen(true);
   };
 
   const handleClose = () => setOpen(false);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setImageFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm((prev) => ({ ...prev, image: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = async () => {
+    let submitForm = { ...form };
+    if (!submitForm.image) {
+      // Convert default image to base64
+      const toBase64 = (url) =>
+        fetch(url)
+          .then((res) => res.blob())
+          .then(
+            (blob) =>
+              new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              })
+          );
+      submitForm.image = await toBase64(defaultDriverImg);
+    }
     if (editId) {
-      await updateConductor(editId, form);
+      await updateConductor(editId, submitForm);
     } else {
-      await createConductor(form);
+      await createConductor(submitForm);
     }
     fetchConductors();
     handleClose();
@@ -71,10 +107,21 @@ export default function Conductors() {
   };
 
   const columns = [
+    { field: "id", headerName: "ID", width: 80 },
+    {
+      field: "image",
+      headerName: "Photo",
+      width: 90,
+      renderCell: (params) => (
+        <Avatar
+          src={params.row.image || defaultDriverImg}
+          alt={params.row.name}
+        />
+      ),
+    },
     { field: "name", headerName: "Name", flex: 1 },
     { field: "phone", headerName: "Phone", flex: 1 },
-    { field: "employee_id", headerName: "Employee ID", flex: 1 },
-    { field: "route_id", headerName: "Route ID", flex: 1 },
+    { field: "email", headerName: "Email", flex: 1 },
     {
       field: "actions",
       headerName: "Actions",
@@ -82,9 +129,13 @@ export default function Conductors() {
       renderCell: (params) => (
         <>
           <Button onClick={() => handleOpen(params.row)}>Edit</Button>
-          <Button color="error" onClick={() => handleDelete(params.row.id)}>
-            Delete
-          </Button>
+          <IconButton
+            color="error"
+            onClick={() => handleDelete(params.row.id)}
+            aria-label="delete"
+          >
+            <DeleteIcon />
+          </IconButton>
         </>
       ),
     },
@@ -126,20 +177,29 @@ export default function Conductors() {
           />
           <TextField
             margin="dense"
-            label="Employee ID"
+            label="Email"
             fullWidth
-            value={form.employee_id}
-            onChange={(e) =>
-              setForm({ ...form, employee_id: e.target.value })
-            }
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
-          <TextField
-            margin="dense"
-            label="Route ID"
-            fullWidth
-            value={form.route_id}
-            onChange={(e) => setForm({ ...form, route_id: e.target.value })}
-          />
+          <div style={{ marginTop: 16 }}>
+            <Button variant="outlined" component="label">
+              Upload Photo
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleImageChange}
+              />
+            </Button>
+            <div style={{ marginTop: 8 }}>
+              <Avatar
+                src={form.image || defaultDriverImg}
+                alt="Conductor"
+                sx={{ width: 56, height: 56 }}
+              />
+            </div>
+          </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>

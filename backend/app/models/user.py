@@ -27,6 +27,7 @@ class DriverUser(BaseUser):
 
 class ConductorUser(BaseUser):
     role: Role = Role.CONDUCTOR
+    email: Optional[EmailStr] = None  # Added
 
 class PassengerUser(BaseUser):
     role: Role = Role.PASSENGER
