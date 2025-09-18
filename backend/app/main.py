@@ -2,15 +2,26 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import Routers
-from app.api import admin, driver, conductor, passenger, vehicle, device, telemetry, admin_assign, session, audit
-from app.api import route  # <-- Add this import
+from app.api import (
+    admin,
+    driver,
+    conductor,
+    passenger,
+    vehicle,
+    device,
+    telemetry,
+    admin_assign,
+    session,
+    audit,
+    route,
+)
 
 app = FastAPI(title="Punjab Bus Tracking API")
 
 # ---------------- CORS ----------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # production: set frontend URLs
+    allow_origins=["*"],  # TODO: in production set only frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,12 +38,14 @@ app.include_router(telemetry.router, prefix="/telemetry", tags=["Telemetry"])
 app.include_router(admin_assign.router, prefix="/assign", tags=["Assignment"])
 app.include_router(session.router, prefix="/session", tags=["Session"])
 app.include_router(audit.router, prefix="/audit", tags=["Audit"])
-app.include_router(route.router, prefix="/routes", tags=["Route"])  # <-- Add this line
+app.include_router(route.router, prefix="/routes", tags=["Route"])
+
 
 # ---------------- Health Check ----------------
 @app.get("/health")
 async def health_check():
     from app.config import w3, contract, RPC_URL
+
     blockchain_status = "connected" if w3.is_connected() else "disconnected"
     contract_status = "loaded" if contract else "not_loaded"
     return {
@@ -40,26 +53,31 @@ async def health_check():
         "blockchain": blockchain_status,
         "contract": contract_status,
         "rpc_url": RPC_URL,
-        "message": "Punjab Bus Tracking API is running"
+        "message": "Punjab Bus Tracking API is running",
     }
 
-# Admin Devices
+
+# ---------------- Admin Shortcuts ----------------
 @app.get("/admin/devices")
 async def admin_list_devices():
     from app.crud.device import list_devices
+
     return await list_devices()
 
-# Admin Vehicles
+
 @app.get("/admin/vehicles")
 async def admin_list_vehicles():
     from app.crud.vehicle import list_vehicles
+
     return await list_vehicles()
 
-# Admin Sessions
+
 @app.get("/admin/sessions")
 async def admin_list_sessions():
     from app.crud.session import list_sessions
+
     return await list_sessions()
 
+
 # ---------------- Run with Uvicorn ----------------
-# uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

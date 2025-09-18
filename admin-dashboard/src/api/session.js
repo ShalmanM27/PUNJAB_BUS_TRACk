@@ -31,3 +31,9 @@ export const getSessionById = async (id) => {
   const res = await client.get(`${BASE}/${id}`);
   return res.data;
 };
+
+// ---------------- Get Upcoming Session for Vehicle ----------------
+export const getUpcomingSessionForVehicle = async (vehicleId) => {
+  const res = await client.get(`/session/vehicle/${vehicleId}/upcoming`);
+  return res.data;
+};

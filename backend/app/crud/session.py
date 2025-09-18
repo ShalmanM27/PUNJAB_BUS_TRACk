@@ -27,15 +27,15 @@ async def get_next_session_id():
 
 
 # ---------------- Route Estimated Time ----------------
-async def get_route_estimated_time(vehicle_id):
-    route = await ROUTE_COLLECTION.find_one({"vehicle_id": vehicle_id})
+async def get_route_estimated_time(vehicle_id: int):
+    route = await ROUTE_COLLECTION.find_one({"vehicle_id": int(vehicle_id)})
     if route and "estimated_time" in route:
         return int(route["estimated_time"])
     return 0
 
 
 # ---------------- Last Session for Entity ----------------
-async def get_last_session(entity_field, entity_id):
+async def get_last_session(entity_field: str, entity_id: int):
     doc = await SESSION_COLLECTION.find_one(
         {entity_field: entity_id},
         sort=[("start_time", -1)]
@@ -44,7 +44,7 @@ async def get_last_session(entity_field, entity_id):
 
 
 # ---------------- Overlap Check ----------------
-async def is_overlapping(entity_field, entity_id, new_start_time):
+async def is_overlapping(entity_field: str, entity_id: int, new_start_time: datetime):
     last_session = await get_last_session(entity_field, entity_id)
     if not last_session:
         return False, None
@@ -56,7 +56,6 @@ async def is_overlapping(entity_field, entity_id, new_start_time):
     est_minutes = await get_route_estimated_time(vehicle_id)
     last_start = last_session["start_time"]
 
-    # Handle string timestamp from DB
     if isinstance(last_start, str):
         last_start = datetime.fromisoformat(last_start)
 
@@ -68,12 +67,11 @@ async def is_overlapping(entity_field, entity_id, new_start_time):
 
 
 # ---------------- Hard Conflict Check ----------------
-async def has_hard_conflict(field, entity_id, new_start_time, exclude_session_id=None):
+async def has_hard_conflict(field: str, entity_id: int, new_start_time: datetime, exclude_session_id: str = None):
     query = {field: entity_id, "start_time": new_start_time}
     if exclude_session_id:
         query["id"] = {"$ne": int(exclude_session_id)}
-    existing = await SESSION_COLLECTION.find_one(query)
-    return existing
+    return await SESSION_COLLECTION.find_one(query)
 
 
 # ---------------- Create Session ----------------
@@ -88,49 +86,39 @@ async def create_session(data: dict):
         new_start_time = data["start_time"]
 
     # Hard conflict checks
-    if await has_hard_conflict("vehicle_id", data["vehicle_id"], new_start_time):
-        raise ValueError(
-            f"Vehicle {data['vehicle_id']} already has a session starting at {new_start_time}"
-        )
-    if await has_hard_conflict("driver_id", data["driver_id"], new_start_time):
-        raise ValueError(
-            f"Driver {data['driver_id']} already has a session starting at {new_start_time}"
-        )
+    if await has_hard_conflict("vehicle_id", int(data["vehicle_id"]), new_start_time):
+        raise ValueError(f"Vehicle {data['vehicle_id']} already has a session at {new_start_time}")
+    if await has_hard_conflict("driver_id", int(data["driver_id"]), new_start_time):
+        raise ValueError(f"Driver {data['driver_id']} already has a session at {new_start_time}")
     if data.get("conductor_id"):
-        if await has_hard_conflict("conductor_id", data["conductor_id"], new_start_time):
-            raise ValueError(
-                f"Conductor {data['conductor_id']} already has a session starting at {new_start_time}"
-            )
+        if await has_hard_conflict("conductor_id", int(data["conductor_id"]), new_start_time):
+            raise ValueError(f"Conductor {data['conductor_id']} already has a session at {new_start_time}")
 
-    # Driver overlap
-    overlap, last = await is_overlapping("driver_id", data["driver_id"], new_start_time)
+    # Overlap checks
+    overlap, last = await is_overlapping("driver_id", int(data["driver_id"]), new_start_time)
     if overlap:
         raise ValueError(
-            f"Driver {data['driver_id']} is already assigned to vehicle {last['vehicle_id']} until {last['calculated_end_time']}"
+            f"Driver {data['driver_id']} busy with vehicle {last['vehicle_id']} until {last['calculated_end_time']}"
         )
-
-    # Conductor overlap
     if data.get("conductor_id"):
-        overlap, last = await is_overlapping("conductor_id", data["conductor_id"], new_start_time)
+        overlap, last = await is_overlapping("conductor_id", int(data["conductor_id"]), new_start_time)
         if overlap:
             raise ValueError(
-                f"Conductor {data['conductor_id']} is already assigned to vehicle {last['vehicle_id']} until {last['calculated_end_time']}"
+                f"Conductor {data['conductor_id']} busy with vehicle {last['vehicle_id']} until {last['calculated_end_time']}"
             )
-
-    # Vehicle overlap
-    overlap, last = await is_overlapping("vehicle_id", data["vehicle_id"], new_start_time)
+    overlap, last = await is_overlapping("vehicle_id", int(data["vehicle_id"]), new_start_time)
     if overlap:
         raise ValueError(
-            f"Vehicle {data['vehicle_id']} is already assigned to driver {last['driver_id']} until {last['calculated_end_time']}"
+            f"Vehicle {data['vehicle_id']} busy with driver {last['driver_id']} until {last['calculated_end_time']}"
         )
 
     # Auto-attach route_id from vehicle’s active route
-    route = await ROUTE_COLLECTION.find_one({"vehicle_id": data["vehicle_id"]})
+    route = await ROUTE_COLLECTION.find_one({"vehicle_id": int(data["vehicle_id"])})
     if route:
         data["route_id"] = str(route["id"])
 
     # Calculate end_time
-    est_minutes = await get_route_estimated_time(data["vehicle_id"])
+    est_minutes = await get_route_estimated_time(int(data["vehicle_id"]))
     data["end_time"] = new_start_time + timedelta(minutes=est_minutes) if est_minutes else None
 
     data["id"] = await get_next_session_id()
@@ -141,10 +129,7 @@ async def create_session(data: dict):
 # ---------------- List Sessions ----------------
 async def list_sessions():
     cursor = SESSION_COLLECTION.find({}).sort("start_time", 1)
-    sessions = []
-    async for doc in cursor:
-        sessions.append(serialize(doc))
-    return sessions
+    return [serialize(doc) async for doc in cursor]
 
 
 # ---------------- Get Session by ID ----------------
@@ -168,45 +153,36 @@ async def update_session(session_id: str, data: dict):
     if isinstance(new_start_time, str):
         new_start_time = datetime.fromisoformat(new_start_time)
 
-    vehicle_id = data.get("vehicle_id", existing["vehicle_id"])
-    driver_id = data.get("driver_id", existing["driver_id"])
+    vehicle_id = int(data.get("vehicle_id", existing["vehicle_id"]))
+    driver_id = int(data.get("driver_id", existing["driver_id"]))
     conductor_id = data.get("conductor_id", existing.get("conductor_id"))
+    conductor_id = int(conductor_id) if conductor_id else None
 
     # Hard conflict checks
-    if await has_hard_conflict("vehicle_id", vehicle_id, new_start_time, exclude_session_id=session_id):
-        raise ValueError(
-            f"Vehicle {vehicle_id} already has a session starting at {new_start_time}"
-        )
-    if await has_hard_conflict("driver_id", driver_id, new_start_time, exclude_session_id=session_id):
-        raise ValueError(
-            f"Driver {driver_id} already has a session starting at {new_start_time}"
-        )
+    if await has_hard_conflict("vehicle_id", vehicle_id, new_start_time, session_id):
+        raise ValueError(f"Vehicle {vehicle_id} already has a session at {new_start_time}")
+    if await has_hard_conflict("driver_id", driver_id, new_start_time, session_id):
+        raise ValueError(f"Driver {driver_id} already has a session at {new_start_time}")
     if conductor_id:
-        if await has_hard_conflict("conductor_id", conductor_id, new_start_time, exclude_session_id=session_id):
-            raise ValueError(
-                f"Conductor {conductor_id} already has a session starting at {new_start_time}"
-            )
+        if await has_hard_conflict("conductor_id", conductor_id, new_start_time, session_id):
+            raise ValueError(f"Conductor {conductor_id} already has a session at {new_start_time}")
 
-    # Driver check
+    # Overlap checks
     overlap, last = await is_overlapping("driver_id", driver_id, new_start_time)
     if overlap and str(last["id"]) != session_id:
         raise ValueError(
-            f"Driver {driver_id} is already assigned to vehicle {last['vehicle_id']} until {last['calculated_end_time']}"
+            f"Driver {driver_id} busy with vehicle {last['vehicle_id']} until {last['calculated_end_time']}"
         )
-
-    # Conductor check
     if conductor_id:
         overlap, last = await is_overlapping("conductor_id", conductor_id, new_start_time)
         if overlap and str(last["id"]) != session_id:
             raise ValueError(
-                f"Conductor {conductor_id} is already assigned to vehicle {last['vehicle_id']} until {last['calculated_end_time']}"
+                f"Conductor {conductor_id} busy with vehicle {last['vehicle_id']} until {last['calculated_end_time']}"
             )
-
-    # Vehicle check
     overlap, last = await is_overlapping("vehicle_id", vehicle_id, new_start_time)
     if overlap and str(last["id"]) != session_id:
         raise ValueError(
-            f"Vehicle {vehicle_id} is already assigned to driver {last['driver_id']} until {last['calculated_end_time']}"
+            f"Vehicle {vehicle_id} busy with driver {last['driver_id']} until {last['calculated_end_time']}"
         )
 
     # Update end_time
@@ -221,3 +197,15 @@ async def update_session(session_id: str, data: dict):
 async def delete_session(session_id: str):
     result = await SESSION_COLLECTION.delete_one({"id": int(session_id)})
     return result.deleted_count > 0
+
+
+# ---------------- Get Upcoming Immediate Session for Vehicle ----------------
+async def get_upcoming_session_for_vehicle(vehicle_id: str):
+    now = datetime.utcnow()
+    query = {
+        "vehicle_id": {"$in": [vehicle_id, int(vehicle_id)]},
+        "start_time": {"$gte": now}
+    }
+    doc = await SESSION_COLLECTION.find_one(query, sort=[("start_time", 1)])
+    return serialize(doc)
+

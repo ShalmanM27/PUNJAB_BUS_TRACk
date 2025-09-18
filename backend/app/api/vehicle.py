@@ -6,7 +6,7 @@ from app.crud import vehicle as vehicle_crud
 router = APIRouter()
 
 # ------------------- Admin-only -------------------
-@router.post("/", response_model=VehicleResponse)
+@router.post("", response_model=VehicleResponse)
 async def create_vehicle(vehicle: VehicleCreate):
     """
     Only admin can add vehicles.
@@ -16,7 +16,7 @@ async def create_vehicle(vehicle: VehicleCreate):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/", response_model=List[VehicleResponse])
+@router.get("", response_model=List[VehicleResponse])
 async def list_vehicles():
     """
     List all vehicles. Accessible to all authenticated users.

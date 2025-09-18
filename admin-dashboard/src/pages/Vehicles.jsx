@@ -1,21 +1,61 @@
 // src/pages/Vehicles.jsx
 import React, { useEffect, useState } from "react";
-import { Button, Typography, TextField, Dialog, DialogActions, DialogContent, DialogTitle, IconButton } from "@mui/material";
+import {
+  Button,
+  Typography,
+  TextField,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { getVehicles, createVehicle, updateVehicle, deleteVehicle, assignDriver, assignConductor } from "../api/vehicle";
+import {
+  getVehicles,
+  createVehicle,
+  updateVehicle,
+  deleteVehicle,
+} from "../api/vehicle";
+import { getUpcomingSessionForVehicle } from "../api/session";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function Vehicles() {
   const [vehicles, setVehicles] = useState([]);
   const [open, setOpen] = useState(false);
-  const [vehicleData, setVehicleData] = useState({ registration_number: "", capacity: 0 });
+  const [vehicleData, setVehicleData] = useState({
+    registration_number: "",
+    capacity: 0,
+  });
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState(""); // For registration number, capacity
   const [idSearch, setIdSearch] = useState(""); // For ID search
 
   const fetchVehicles = async () => {
     const data = await getVehicles();
-    setVehicles(data);
+
+    // Attach driver_id & conductor_id from upcoming session
+    const enrichedVehicles = await Promise.all(
+      data.map(async (vehicle) => {
+        try {
+          const session = await getUpcomingSessionForVehicle(vehicle.id);
+          return {
+            ...vehicle,
+            current_driver_id: session.driver_id,
+            current_conductor_id: session.conductor_id || "-",
+          };
+        } catch (err) {
+          // No upcoming session -> keep them empty
+          return {
+            ...vehicle,
+            current_driver_id: "-",
+            current_conductor_id: "-",
+          };
+        }
+      })
+    );
+
+    setVehicles(enrichedVehicles);
   };
 
   useEffect(() => {
@@ -58,7 +98,8 @@ export default function Vehicles() {
       return vehicle.id.toString().includes(idQ);
     }
     return (
-      (vehicle.registration_number && vehicle.registration_number.toLowerCase().includes(q)) ||
+      (vehicle.registration_number &&
+        vehicle.registration_number.toLowerCase().includes(q)) ||
       (vehicle.capacity && vehicle.capacity.toString().includes(q))
     );
   });
@@ -101,7 +142,11 @@ export default function Vehicles() {
           marginBottom: 16,
         }}
       >
-        <Button variant="contained" color="primary" onClick={() => handleOpen()}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => handleOpen()}
+        >
           Add Vehicle
         </Button>
         <TextField
@@ -124,7 +169,11 @@ export default function Vehicles() {
         />
       </div>
       <div style={{ height: 400, marginTop: 20 }}>
-        <DataGrid rows={filteredVehicles} columns={columns} getRowId={(row) => row.id} />
+        <DataGrid
+          rows={filteredVehicles}
+          columns={columns}
+          getRowId={(row) => row.id}
+        />
       </div>
 
       <Dialog open={open} onClose={handleClose}>
@@ -137,20 +186,39 @@ export default function Vehicles() {
             type="text"
             fullWidth
             value={vehicleData.registration_number}
-            onChange={(e) => setVehicleData({ ...vehicleData, registration_number: e.target.value })}
+            onChange={(e) =>
+              setVehicleData({
+                ...vehicleData,
+                registration_number: e.target.value,
+              })
+            }
           />
           <TextField
             margin="dense"
             label="Capacity"
             type="number"
             fullWidth
-            value={vehicleData.capacity}
-            onChange={(e) => setVehicleData({ ...vehicleData, capacity: parseInt(e.target.value) })}
+            value={
+              vehicleData.capacity === 0
+                ? ""
+                : vehicleData.capacity === undefined
+                ? ""
+                : vehicleData.capacity
+            }
+            onChange={(e) => {
+              const val = e.target.value;
+              setVehicleData({
+                ...vehicleData,
+                capacity: val === "" ? "" : Number(val),
+              });
+            }}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSave} color="primary">{editingId ? "Update" : "Add"}</Button>
+          <Button onClick={handleSave} color="primary">
+            {editingId ? "Update" : "Add"}
+          </Button>
         </DialogActions>
       </Dialog>
     </div>
