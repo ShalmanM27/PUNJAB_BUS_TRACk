@@ -8,6 +8,9 @@ router = APIRouter()
 # ------------------- Admin-only -------------------
 @router.post("/", response_model=VehicleResponse)
 async def create_vehicle(vehicle: VehicleCreate):
+    """
+    Only admin can add vehicles.
+    """
     try:
         return await vehicle_crud.create_vehicle(vehicle.dict())
     except ValueError as e:
@@ -15,10 +18,16 @@ async def create_vehicle(vehicle: VehicleCreate):
 
 @router.get("/", response_model=List[VehicleResponse])
 async def list_vehicles():
+    """
+    List all vehicles. Accessible to all authenticated users.
+    """
     return await vehicle_crud.list_vehicles()
 
 @router.get("/{vehicle_id}", response_model=VehicleResponse)
 async def get_vehicle(vehicle_id: str):
+    """
+    Get vehicle details by ID. Accessible to all authenticated users.
+    """
     vehicle = await vehicle_crud.get_vehicle_by_id(vehicle_id)
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
@@ -26,6 +35,9 @@ async def get_vehicle(vehicle_id: str):
 
 @router.put("/{vehicle_id}", response_model=VehicleResponse)
 async def update_vehicle(vehicle_id: str, vehicle: VehicleUpdate):
+    """
+    Only admin can update vehicles.
+    """
     try:
         updated = await vehicle_crud.update_vehicle(vehicle_id, vehicle.dict(exclude_unset=True))
         if not updated:
@@ -36,6 +48,9 @@ async def update_vehicle(vehicle_id: str, vehicle: VehicleUpdate):
 
 @router.delete("/{vehicle_id}")
 async def delete_vehicle(vehicle_id: str):
+    """
+    Only admin can delete vehicles.
+    """
     result = await vehicle_crud.delete_vehicle(vehicle_id)
     if not result:
         raise HTTPException(status_code=404, detail="Vehicle not found")

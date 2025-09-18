@@ -16,6 +16,7 @@ router = APIRouter()
 # ------------------- Admin -------------------
 @router.post("/admins", response_model=AdminResponse)
 async def create_admin(admin: AdminCreate):
+    # Only admin can call this endpoint (enforced by route)
     try:
         return await admin_crud.create_admin(admin.dict())
     except ValueError as e:
@@ -50,6 +51,7 @@ async def delete_admin(admin_id: str):
 # ------------------- Driver -------------------
 @router.post("/drivers", response_model=DriverResponse)
 async def create_driver(driver: DriverCreate):
+    # Only admin can call this endpoint (enforced by route)
     try:
         return await driver_crud.create_driver(driver.dict())
     except ValueError as e:
@@ -87,6 +89,7 @@ async def delete_driver(driver_id: str):
 # ------------------- Conductor -------------------
 @router.post("/conductors", response_model=ConductorResponse)
 async def create_conductor(conductor: ConductorCreate):
+    # Only admin can call this endpoint (enforced by route)
     try:
         return await conductor_crud.create_conductor(conductor.dict())
     except ValueError as e:

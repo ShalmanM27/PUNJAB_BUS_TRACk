@@ -41,5 +41,23 @@ async def health_check():
         "message": "Punjab Bus Tracking API is running"
     }
 
+# Admin Devices
+@app.get("/admin/devices")
+async def admin_list_devices():
+    from app.crud.device import list_devices
+    return await list_devices()
+
+# Admin Vehicles
+@app.get("/admin/vehicles")
+async def admin_list_vehicles():
+    from app.crud.vehicle import list_vehicles
+    return await list_vehicles()
+
+# Admin Sessions
+@app.get("/admin/sessions")
+async def admin_list_sessions():
+    from app.crud.session import list_sessions
+    return await list_sessions()
+
 # ---------------- Run with Uvicorn ----------------
 # uvicorn main:app --reload --host 0.0.0.0 --port 8000

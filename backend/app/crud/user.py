@@ -41,6 +41,8 @@ async def get_admin_by_id(admin_id: str):
 async def create_driver(data: dict):
     if not await is_phone_unique(data["phone"]):
         raise ValueError("Phone number already exists")
+    # Remove assigned_vehicle_id if present
+    data.pop("assigned_vehicle_id", None)
     result = await DRIVER_COLLECTION.insert_one(data)
     data["id"] = str(result.inserted_id)
     return data
@@ -61,6 +63,8 @@ async def update_driver(driver_id: str, data: dict):
 async def create_conductor(data: dict):
     if not await is_phone_unique(data["phone"]):
         raise ValueError("Phone number already exists")
+    # Remove assigned_vehicle_id if present
+    data.pop("assigned_vehicle_id", None)
     result = await CONDUCTOR_COLLECTION.insert_one(data)
     data["id"] = str(result.inserted_id)
     return data

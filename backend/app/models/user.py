@@ -16,6 +16,7 @@ class BaseUser(BaseModel):
     phone: str
     role: Role
     device_ids: Optional[List[str]] = []
+    image: Optional[str] = None  # Added
 
 class AdminUser(BaseUser):
     role: Role = Role.ADMIN

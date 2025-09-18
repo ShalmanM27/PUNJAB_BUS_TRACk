@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 
 const Sidebar = () => {
@@ -19,13 +20,10 @@ const Sidebar = () => {
     <div style={{ width: "250px" }}>
       <List>
         {menuItems.map((item) => (
-          <ListItem
-            key={item.text}
-            button
-            component={Link}
-            to={item.path}
-          >
-            <ListItemText primary={item.text} />
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton component={Link} to={item.path}>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
           </ListItem>
         ))}
       </List>
