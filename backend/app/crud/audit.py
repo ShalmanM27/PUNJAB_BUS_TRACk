@@ -1,9 +1,8 @@
-# backend/app/crud/audit.py
 from app.config import db
 from bson import ObjectId
 from datetime import datetime
 
-AUDIT_COLLECTION = db.audit
+AUDIT_COLLECTION = db.audit_logs
 
 def serialize(doc):
     if not doc:
@@ -12,19 +11,27 @@ def serialize(doc):
     doc.pop("_id", None)
     return doc
 
-async def create_audit_event(data: dict):
-    data["timestamp"] = datetime.utcnow()
-    result = await AUDIT_COLLECTION.insert_one(data)
-    data["id"] = str(result.inserted_id)
-    return data
+# ---------------- Create Audit Log ----------------
+async def create_audit_log(user_id: str, action: str, details: dict = None):
+    audit_doc = {
+        "user_id": user_id,
+        "action": action,
+        "details": details or {},
+        "timestamp": datetime.utcnow()
+    }
+    result = await AUDIT_COLLECTION.insert_one(audit_doc)
+    audit_doc["id"] = str(result.inserted_id)
+    return audit_doc
 
-async def list_audit_events():
-    cursor = AUDIT_COLLECTION.find({})
-    events = []
+# ---------------- List Audit Logs ----------------
+async def list_audit_logs():
+    cursor = AUDIT_COLLECTION.find({}).sort("timestamp", -1)
+    logs = []
     async for doc in cursor:
-        events.append(serialize(doc))
-    return events
+        logs.append(serialize(doc))
+    return logs
 
-async def get_audit_event_by_id(event_id: str):
-    doc = await AUDIT_COLLECTION.find_one({"_id": ObjectId(event_id)})
+# ---------------- Get Audit Log by ID ----------------
+async def get_audit_log_by_id(audit_id: str):
+    doc = await AUDIT_COLLECTION.find_one({"_id": ObjectId(audit_id)})
     return serialize(doc)

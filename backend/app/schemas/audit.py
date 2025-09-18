@@ -1,18 +1,14 @@
-# backend/app/schemas/audit.py
 from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
+from typing import Optional, Dict
 
-class AuditEventCreate(BaseModel):
-    event_type: str
+class AuditLogCreate(BaseModel):
     user_id: str
-    session_id: Optional[str]
-    vehicle_id: Optional[str]
-    device_id: Optional[str]
-    passenger_id: Optional[str]
-    description: Optional[str]
-    event_hash: str
+    action: str
+    details: Optional[Dict] = None
 
-class AuditEventResponse(AuditEventCreate):
+class AuditLogResponse(BaseModel):
     id: str
-    timestamp: datetime
+    user_id: str
+    action: str
+    details: Optional[Dict] = None
+    timestamp: str

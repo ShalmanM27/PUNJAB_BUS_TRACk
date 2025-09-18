@@ -2,21 +2,22 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
+# ---------------- Session Create / Start ----------------
 class SessionCreate(BaseModel):
-    user_id: str
-    roles: str
-    device_id: str
+    driver_id: str
+    conductor_id: Optional[str] = None
     vehicle_id: str
+    start_time: Optional[datetime] = None
 
-class SessionEnd(BaseModel):
-    session_id: str
+# ---------------- Session Update / End ----------------
+class SessionUpdate(BaseModel):
+    end_time: Optional[datetime] = None
 
+# ---------------- Session Response ----------------
 class SessionResponse(BaseModel):
     id: str
-    user_id: str
-    roles: str
-    device_id: str
+    driver_id: str
+    conductor_id: Optional[str] = None
     vehicle_id: str
-    start_time: datetime
-    end_time: Optional[datetime] = None
-    active: bool
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]

@@ -1,4 +1,3 @@
-# backend/app/crud/driver.py
 from app.config import db
 from bson import ObjectId
 
@@ -11,16 +10,16 @@ def serialize(doc):
     doc.pop("_id", None)
     return doc
 
+# ---------------- Create Driver ----------------
 async def create_driver(data: dict):
-    if await db.admins.find_one({"phone": data["phone"]}) or \
-       await db.drivers.find_one({"phone": data["phone"]}) or \
-       await db.conductors.find_one({"phone": data["phone"]}) or \
-       await db.passengers.find_one({"phone": data["phone"]}):
+    # Only admin can call this, so no role check here
+    if await is_phone_unique(data["phone"]) is False:
         raise ValueError("Phone number already exists")
     result = await DRIVER_COLLECTION.insert_one(data)
     data["id"] = str(result.inserted_id)
     return data
 
+# ---------------- List Drivers ----------------
 async def list_drivers():
     cursor = DRIVER_COLLECTION.find({})
     drivers = []
@@ -29,6 +28,25 @@ async def list_drivers():
         drivers.append(serialize(doc))
     return drivers
 
+# ---------------- Get Driver by ID ----------------
 async def get_driver_by_id(driver_id: str):
     doc = await DRIVER_COLLECTION.find_one({"_id": ObjectId(driver_id)})
     return serialize(doc)
+
+# ---------------- Update Driver ----------------
+async def update_driver(driver_id: str, data: dict):
+    await DRIVER_COLLECTION.update_one({"_id": ObjectId(driver_id)}, {"$set": data})
+    return await get_driver_by_id(driver_id)
+
+# ---------------- Delete Driver ----------------
+async def delete_driver(driver_id: str):
+    result = await DRIVER_COLLECTION.delete_one({"_id": ObjectId(driver_id)})
+    return result.deleted_count > 0
+
+# ---------------- Utility ----------------
+async def is_phone_unique(phone: str):
+    collections = [db.admins, db.drivers, db.conductors, db.passengers]
+    for col in collections:
+        if await col.find_one({"phone": phone}):
+            return False
+    return True

@@ -1,12 +1,8 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Dict
 
-class Stop(BaseModel):
-    name: str
-    latitude: float
-    longitude: float
-
-class Route(BaseModel):
-    id: Optional[str]
-    name: str
-    stops: List[Stop]
+class RouteModel(BaseModel):
+    route_name: str = Field(..., description="Unique name of the route")
+    route_points: List[Dict[str, float]] = Field(
+        ..., description="List of GPS points, each as {'latitude': float, 'longitude': float}"
+    )

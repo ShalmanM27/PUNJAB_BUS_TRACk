@@ -1,4 +1,3 @@
-# backend/app/crud/conductor.py
 from app.config import db
 from bson import ObjectId
 
@@ -11,16 +10,15 @@ def serialize(doc):
     doc.pop("_id", None)
     return doc
 
+# ---------------- Create Conductor ----------------
 async def create_conductor(data: dict):
-    if await db.admins.find_one({"phone": data["phone"]}) or \
-       await db.drivers.find_one({"phone": data["phone"]}) or \
-       await db.conductors.find_one({"phone": data["phone"]}) or \
-       await db.passengers.find_one({"phone": data["phone"]}):
+    if await is_phone_unique(data["phone"]) is False:
         raise ValueError("Phone number already exists")
     result = await CONDUCTOR_COLLECTION.insert_one(data)
     data["id"] = str(result.inserted_id)
     return data
 
+# ---------------- List Conductors ----------------
 async def list_conductors():
     cursor = CONDUCTOR_COLLECTION.find({})
     conductors = []
@@ -29,6 +27,25 @@ async def list_conductors():
         conductors.append(serialize(doc))
     return conductors
 
+# ---------------- Get Conductor by ID ----------------
 async def get_conductor_by_id(conductor_id: str):
     doc = await CONDUCTOR_COLLECTION.find_one({"_id": ObjectId(conductor_id)})
     return serialize(doc)
+
+# ---------------- Update Conductor ----------------
+async def update_conductor(conductor_id: str, data: dict):
+    await CONDUCTOR_COLLECTION.update_one({"_id": ObjectId(conductor_id)}, {"$set": data})
+    return await get_conductor_by_id(conductor_id)
+
+# ---------------- Delete Conductor ----------------
+async def delete_conductor(conductor_id: str):
+    result = await CONDUCTOR_COLLECTION.delete_one({"_id": ObjectId(conductor_id)})
+    return result.deleted_count > 0
+
+# ---------------- Utility ----------------
+async def is_phone_unique(phone: str):
+    collections = [db.admins, db.drivers, db.conductors, db.passengers]
+    for col in collections:
+        if await col.find_one({"phone": phone}):
+            return False
+    return True

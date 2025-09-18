@@ -1,43 +1,55 @@
-# backend/app/schemas/user.py
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import List, Optional
 
-# Admin
+# ---------------- Admin ----------------
 class AdminCreate(BaseModel):
     name: str
-    email: Optional[EmailStr]
     phone: str
-
-class AdminResponse(AdminCreate):
-    id: str
+    email: Optional[EmailStr] = None
     device_ids: Optional[List[str]] = []
 
-# Driver
+class AdminResponse(BaseModel):
+    id: str
+    name: str
+    phone: str
+    email: Optional[str] = None
+    device_ids: List[str] = []
+
+# ---------------- Driver ----------------
 class DriverCreate(BaseModel):
     name: str
-    email: Optional[EmailStr]
     phone: str
     license_number: str
+    assigned_vehicle_id: Optional[str] = None
 
-class DriverResponse(DriverCreate):
+class DriverResponse(BaseModel):
     id: str
-    device_ids: Optional[List[str]] = []
+    name: str
+    phone: str
+    license_number: str
+    assigned_vehicle_id: Optional[str] = None
 
-# Conductor
+# ---------------- Conductor ----------------
 class ConductorCreate(BaseModel):
     name: str
-    email: Optional[EmailStr]
     phone: str
+    assigned_vehicle_id: Optional[str] = None
 
-class ConductorResponse(ConductorCreate):
+class ConductorResponse(BaseModel):
     id: str
-    device_ids: Optional[List[str]] = []
+    name: str
+    phone: str
+    assigned_vehicle_id: Optional[str] = None
 
-# Passenger
+# ---------------- Passenger ----------------
 class PassengerCreate(BaseModel):
     name: str
     phone: str
+    email: Optional[EmailStr] = None
+    password: str  # hashed in backend
 
-class PassengerResponse(PassengerCreate):
+class PassengerResponse(BaseModel):
     id: str
-    device_ids: Optional[List[str]] = []
+    name: str
+    phone: str
+    email: Optional[str] = None
