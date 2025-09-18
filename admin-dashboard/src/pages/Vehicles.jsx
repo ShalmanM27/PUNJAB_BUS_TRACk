@@ -1,8 +1,9 @@
 // src/pages/Vehicles.jsx
 import React, { useEffect, useState } from "react";
-import { Button, Typography, TextField, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import { Button, Typography, TextField, Dialog, DialogActions, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { getVehicles, createVehicle, updateVehicle, deleteVehicle, assignDriver, assignConductor } from "../api/vehicle";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function Vehicles() {
   const [vehicles, setVehicles] = useState([]);
@@ -60,7 +61,13 @@ export default function Vehicles() {
       renderCell: (params) => (
         <>
           <Button onClick={() => handleOpen(params.row)}>Edit</Button>
-          <Button color="error" onClick={() => handleDelete(params.row.id)}>Delete</Button>
+          <IconButton
+            color="error"
+            onClick={() => handleDelete(params.row.id)}
+            aria-label="delete-vehicle"
+          >
+            <DeleteIcon />
+          </IconButton>
         </>
       ),
     },

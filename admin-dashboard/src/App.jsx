@@ -15,6 +15,7 @@ import Sessions from "./pages/Sessions";
 import Telemetry from "./pages/Telemetry";
 import Assignments from "./pages/Assignments";
 import AuditLogs from "./pages/AuditLogs";
+import RoutesPage from "./pages/Routes"; // Add this import
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/assignments" element={<Assignments />} />
             <Route path="/audit-logs" element={<AuditLogs />} />
+            <Route path="/routes" element={<RoutesPage />} /> {/* Add this line */}
           </Routes>
         </main>
       </div>

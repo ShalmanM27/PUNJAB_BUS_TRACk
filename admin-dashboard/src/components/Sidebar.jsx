@@ -14,6 +14,7 @@ const Sidebar = () => {
     { text: "Vehicles", path: "/vehicles" },
     { text: "Devices", path: "/devices" },
     { text: "Sessions", path: "/sessions" },
+    { text: "Routes", path: "/routes" }, // <-- Add this line
   ];
 
   return (

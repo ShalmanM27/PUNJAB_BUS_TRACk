@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Import Routers
 from app.api import admin, driver, conductor, passenger, vehicle, device, telemetry, admin_assign, session, audit
+from app.api import route  # <-- Add this import
 
 app = FastAPI(title="Punjab Bus Tracking API")
 
@@ -26,6 +27,7 @@ app.include_router(telemetry.router, prefix="/telemetry", tags=["Telemetry"])
 app.include_router(admin_assign.router, prefix="/assign", tags=["Assignment"])
 app.include_router(session.router, prefix="/session", tags=["Session"])
 app.include_router(audit.router, prefix="/audit", tags=["Audit"])
+app.include_router(route.router, prefix="/routes", tags=["Route"])  # <-- Add this line
 
 # ---------------- Health Check ----------------
 @app.get("/health")
