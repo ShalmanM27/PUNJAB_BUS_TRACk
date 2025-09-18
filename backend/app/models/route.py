@@ -9,3 +9,4 @@ class RouteModel(BaseModel):
     route_points: List[Dict[str, float]] = Field(
         ..., description="List of GPS points, each as {'latitude': float, 'longitude': float}"
     )
+    estimated_time: int = Field(..., description="Estimated time in minutes from source to destination")

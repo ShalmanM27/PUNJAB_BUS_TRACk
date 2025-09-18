@@ -23,9 +23,10 @@ async def get_next_route_id():
 
 # ---------------- Create Route ----------------
 async def create_route(data: dict):
-    existing = await ROUTE_COLLECTION.find_one({"route_name": data["route_name"]})
-    if existing:
-        raise ValueError("Route name already exists")
+    # Ensure unique vehicle_id
+    existing_vehicle = await ROUTE_COLLECTION.find_one({"vehicle_id": data["vehicle_id"]})
+    if existing_vehicle:
+        raise ValueError("Vehicle ID is already assigned to another route")
 
     data["id"] = await get_next_route_id()
     result = await ROUTE_COLLECTION.insert_one(data)
@@ -52,11 +53,14 @@ async def get_route_by_id(route_id: str):
 
 # ---------------- Update Route ----------------
 async def update_route(route_id: str, data: dict):
-    if "route_name" in data:
-        # Ensure unique route name
-        existing = await ROUTE_COLLECTION.find_one({"route_name": data["route_name"], "id": {"$ne": int(route_id)}})
-        if existing:
-            raise ValueError("Route name already exists")
+    if "vehicle_id" in data:
+        # Ensure unique vehicle_id (exclude current route)
+        existing_vehicle = await ROUTE_COLLECTION.find_one({
+            "vehicle_id": data["vehicle_id"],
+            "id": {"$ne": int(route_id)}
+        })
+        if existing_vehicle:
+            raise ValueError("Vehicle ID is already assigned to another route")
 
     await ROUTE_COLLECTION.update_one({"id": int(route_id)}, {"$set": data})
     return await get_route_by_id(route_id)

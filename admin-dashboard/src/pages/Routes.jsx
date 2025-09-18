@@ -28,6 +28,7 @@ export default function Routes() {
     destination: "",
     vehicle_id: "",
     route_points: [],
+    estimated_time: "", // added
   });
   const [editId, setEditId] = useState(null);
   const [search, setSearch] = useState("");
@@ -51,6 +52,7 @@ export default function Routes() {
         destination: route.destination,
         vehicle_id: route.vehicle_id,
         route_points: route.route_points || [],
+        estimated_time: route.estimated_time || "", // added
       });
       setEditId(route.id);
     } else {
@@ -60,6 +62,7 @@ export default function Routes() {
         destination: "",
         vehicle_id: "",
         route_points: [],
+        estimated_time: "", // added
       });
       setEditId(null);
     }
@@ -82,7 +85,7 @@ export default function Routes() {
         latitude: pt.latitude,
         longitude: pt.longitude,
       }));
-    const submitForm = { ...form, route_points: cleanedPoints };
+    const submitForm = { ...form, route_points: cleanedPoints, estimated_time: parseInt(form.estimated_time, 10) };
     if (editId) {
       await updateRoute(editId, submitForm);
     } else {
@@ -148,6 +151,7 @@ export default function Routes() {
           ? params.row.route_points.length
           : 0,
     },
+    { field: "estimated_time", headerName: "Est. Time (min)", flex: 1 }, // added
     {
       field: "actions",
       headerName: "Actions",
@@ -231,6 +235,14 @@ export default function Routes() {
             fullWidth
             value={form.vehicle_id}
             onChange={(e) => setForm({ ...form, vehicle_id: e.target.value })}
+          />
+          <TextField
+            margin="dense"
+            label="Estimated Time (minutes)"
+            type="number"
+            fullWidth
+            value={form.estimated_time}
+            onChange={(e) => setForm({ ...form, estimated_time: e.target.value })}
           />
           <Box mt={2}>
             <Typography variant="subtitle1">Route Points</Typography>
