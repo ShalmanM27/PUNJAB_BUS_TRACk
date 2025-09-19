@@ -29,6 +29,11 @@ export default function Sessions() {
   });
   const [error, setError] = useState("");
   const [editId, setEditId] = useState(null);
+  const [searchDriverId, setSearchDriverId] = useState("");
+  const [searchConductorId, setSearchConductorId] = useState("");
+  const [searchVehicleId, setSearchVehicleId] = useState("");
+  const [searchRouteName, setSearchRouteName] = useState("");
+  const [searchDate, setSearchDate] = useState("");
 
   const fetchSessions = async () => {
     try {
@@ -89,6 +94,54 @@ export default function Sessions() {
     }
   };
 
+  // Filtering logic
+  const filteredSessions = sessions.filter((session) => {
+    // Only one of the four search bars should be active at a time
+    const driverQ = searchDriverId.trim();
+    const conductorQ = searchConductorId.trim();
+    const vehicleQ = searchVehicleId.trim();
+    const routeQ = searchRouteName.trim().toLowerCase();
+    const dateQ = searchDate.trim();
+
+    // Helper: check if session's start_time is on or after the selected date
+    const matchesDate = (startTime) => {
+      if (!dateQ) return true;
+      // start_time is ISO string, dateQ is yyyy-MM-dd
+      return startTime.slice(0, 10) >= dateQ;
+    };
+
+    if (driverQ) {
+      return (
+        session.driver_id?.toString().includes(driverQ) &&
+        matchesDate(session.start_time)
+      );
+    }
+    if (conductorQ) {
+      return (
+        session.conductor_id?.toString().includes(conductorQ) &&
+        matchesDate(session.start_time)
+      );
+    }
+    if (vehicleQ) {
+      return (
+        session.vehicle_id?.toString().includes(vehicleQ) &&
+        matchesDate(session.start_time)
+      );
+    }
+    if (routeQ) {
+      return (
+        (session.route_name || "").toLowerCase().includes(routeQ) &&
+        matchesDate(session.start_time)
+      );
+    }
+    // If no search, but date is selected, show all sessions from that date
+    if (dateQ) {
+      return matchesDate(session.start_time);
+    }
+    // Default: show all
+    return true;
+  });
+
   const columns = [
     { field: "id", headerName: "ID", width: 80 },
     { field: "vehicle_id", headerName: "Vehicle ID", width: 120 },
@@ -129,26 +182,114 @@ export default function Sessions() {
       <Typography variant="h5" gutterBottom>
         Session Management
       </Typography>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => {
-          setFormData({
-            driver_id: "",
-            conductor_id: "",
-            vehicle_id: "",
-            route_id: "",
-            start_time: "",
-          });
-          setEditId(null);
-          setOpen(true);
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          marginBottom: 16,
+          flexWrap: "wrap",
         }}
       >
-        Add Session
-      </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => {
+            setFormData({
+              driver_id: "",
+              conductor_id: "",
+              vehicle_id: "",
+              route_id: "",
+              start_time: "",
+            });
+            setEditId(null);
+            setOpen(true);
+          }}
+        >
+          Add Session
+        </Button>
+        <TextField
+          label="Search by Driver ID"
+          variant="outlined"
+          size="small"
+          value={searchDriverId}
+          onChange={(e) => {
+            setSearchDriverId(e.target.value);
+            setSearchConductorId("");
+            setSearchVehicleId("");
+            setSearchRouteName("");
+          }}
+          style={{ width: 140 }}
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+        />
+        <TextField
+          label="Search by Conductor ID"
+          variant="outlined"
+          size="small"
+          value={searchConductorId}
+          onChange={(e) => {
+            setSearchConductorId(e.target.value);
+            setSearchDriverId("");
+            setSearchVehicleId("");
+            setSearchRouteName("");
+          }}
+          style={{ width: 160 }}
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+        />
+        <TextField
+          label="Search by Vehicle ID"
+          variant="outlined"
+          size="small"
+          value={searchVehicleId}
+          onChange={(e) => {
+            setSearchVehicleId(e.target.value);
+            setSearchDriverId("");
+            setSearchConductorId("");
+            setSearchRouteName("");
+          }}
+          style={{ width: 140 }}
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+        />
+        <TextField
+          label="Search by Route Name"
+          variant="outlined"
+          size="small"
+          value={searchRouteName}
+          onChange={(e) => {
+            setSearchRouteName(e.target.value);
+            setSearchDriverId("");
+            setSearchConductorId("");
+            setSearchVehicleId("");
+          }}
+          style={{ width: 180 }}
+        />
+        <TextField
+          label="Start Date"
+          type="date"
+          variant="outlined"
+          size="small"
+          value={searchDate}
+          onChange={(e) => setSearchDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          style={{ width: 140 }}
+        />
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={() => {
+            setSearchDriverId("");
+            setSearchConductorId("");
+            setSearchVehicleId("");
+            setSearchRouteName("");
+            setSearchDate("");
+          }}
+        >
+          Clear Filters
+        </Button>
+      </div>
       <div style={{ height: 400, marginTop: 20 }}>
         <DataGrid
-          rows={sessions}
+          rows={filteredSessions}
           columns={columns}
           getRowId={(row) => row.id}
           disableRowSelectionOnClick

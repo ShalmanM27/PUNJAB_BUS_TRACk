@@ -9,6 +9,19 @@ def serialize(doc):
         return None
     doc["id"] = str(doc.get("id", str(doc["_id"])))
     doc.pop("_id", None)
+    # Ensure source and destination are always dicts with name, latitude, longitude
+    for loc_key in ["source", "destination"]:
+        loc = doc.get(loc_key)
+        if isinstance(loc, dict):
+            # Ensure all keys exist
+            doc[loc_key] = {
+                "name": loc.get("name", ""),
+                "latitude": float(loc.get("latitude", 0)),
+                "longitude": float(loc.get("longitude", 0)),
+            }
+        else:
+            # fallback: empty location
+            doc[loc_key] = {"name": "", "latitude": 0.0, "longitude": 0.0}
     return doc
 
 # ---------------- Utility for auto-increment ----------------
@@ -69,3 +82,5 @@ async def update_route(route_id: str, data: dict):
 async def delete_route(route_id: str):
     result = await ROUTE_COLLECTION.delete_one({"id": int(route_id)})
     return result.deleted_count > 0
+
+# No changes needed for route_points, as the schema now enforces the structure.
