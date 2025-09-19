@@ -49,12 +49,3 @@ async def delete_session(session_id: str):
     if not result:
         raise HTTPException(status_code=404, detail="Session not found")
     return {"detail": "Session deleted successfully"}
-
-
-# ---------------- Get Upcoming Session for Vehicle ----------------
-@router.get("/vehicle/{vehicle_id}/upcoming", response_model=SessionResponse)
-async def get_upcoming_session_for_vehicle(vehicle_id: str):
-    session = await session_crud.get_upcoming_session_for_vehicle(vehicle_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="No upcoming session found for this vehicle")
-    return session

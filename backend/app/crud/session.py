@@ -7,10 +7,22 @@ COUNTERS_COLLECTION = db.counters
 ROUTE_COLLECTION = db.routes
 
 
-def serialize(doc):
+# ---------------- Serialize Document ----------------
+async def serialize(doc):
     if not doc:
         return None
     doc["id"] = str(doc.get("id", str(doc.get("_id"))))
+
+    # Attach route_name if route_id exists
+    doc["route_name"] = None
+    if "route_id" in doc:
+        try:
+            route_doc = await ROUTE_COLLECTION.find_one({"id": int(doc["route_id"])})
+            if route_doc:
+                doc["route_name"] = route_doc.get("route_name")
+        except Exception:
+            pass
+
     doc.pop("_id", None)
     return doc
 
@@ -26,12 +38,9 @@ async def get_next_session_id():
     return counter["seq"]
 
 
-# ---------------- Route Estimated Time ----------------
-async def get_route_estimated_time(vehicle_id: int):
-    route = await ROUTE_COLLECTION.find_one({"vehicle_id": int(vehicle_id)})
-    if route and "estimated_time" in route:
-        return int(route["estimated_time"])
-    return 0
+# ---------------- Route Lookup ----------------
+async def get_route_by_id(route_id: int):
+    return await ROUTE_COLLECTION.find_one({"id": route_id})
 
 
 # ---------------- Last Session for Entity ----------------
@@ -49,11 +58,12 @@ async def is_overlapping(entity_field: str, entity_id: int, new_start_time: date
     if not last_session:
         return False, None
 
-    vehicle_id = last_session.get("vehicle_id")
-    if not vehicle_id:
+    route_id = last_session.get("route_id")
+    if not route_id:
         return False, None
 
-    est_minutes = await get_route_estimated_time(vehicle_id)
+    route = await get_route_by_id(int(route_id))
+    est_minutes = int(route["estimated_time"]) if route and "estimated_time" in route else 0
     last_start = last_session["start_time"]
 
     if isinstance(last_start, str):
@@ -76,8 +86,8 @@ async def has_hard_conflict(field: str, entity_id: int, new_start_time: datetime
 
 # ---------------- Create Session ----------------
 async def create_session(data: dict):
-    if not data.get("driver_id") or not data.get("vehicle_id"):
-        raise ValueError("Driver ID and Vehicle ID are required.")
+    if not data.get("driver_id") or not data.get("vehicle_id") or not data.get("route_id"):
+        raise ValueError("Driver ID, Vehicle ID and Route ID are required.")
 
     # Parse start_time
     if isinstance(data["start_time"], str):
@@ -112,24 +122,30 @@ async def create_session(data: dict):
             f"Vehicle {data['vehicle_id']} busy with driver {last['driver_id']} until {last['calculated_end_time']}"
         )
 
-    # Auto-attach route_id from vehicle’s active route
-    route = await ROUTE_COLLECTION.find_one({"vehicle_id": int(data["vehicle_id"])})
-    if route:
-        data["route_id"] = str(route["id"])
+    # Fetch route info by route_id
+    route = await get_route_by_id(int(data["route_id"]))
+    if not route:
+        raise ValueError(f"Route {data['route_id']} not found")
+
+    data["route_name"] = route.get("route_name")
 
     # Calculate end_time
-    est_minutes = await get_route_estimated_time(int(data["vehicle_id"]))
+    est_minutes = int(route["estimated_time"]) if "estimated_time" in route else 0
     data["end_time"] = new_start_time + timedelta(minutes=est_minutes) if est_minutes else None
 
     data["id"] = await get_next_session_id()
     await SESSION_COLLECTION.insert_one(data)
-    return serialize(data)
+    return await serialize(data)
 
 
 # ---------------- List Sessions ----------------
 async def list_sessions():
     cursor = SESSION_COLLECTION.find({}).sort("start_time", 1)
-    return [serialize(doc) async for doc in cursor]
+    result = []
+    async for doc in cursor:
+        serialized_doc = await serialize(doc)
+        result.append(serialized_doc)
+    return result
 
 
 # ---------------- Get Session by ID ----------------
@@ -140,7 +156,7 @@ async def get_session_by_id(session_id: str):
             doc = await SESSION_COLLECTION.find_one({"_id": ObjectId(session_id)})
         except Exception:
             doc = None
-    return serialize(doc)
+    return await serialize(doc)
 
 
 # ---------------- Update Session ----------------
@@ -157,6 +173,7 @@ async def update_session(session_id: str, data: dict):
     driver_id = int(data.get("driver_id", existing["driver_id"]))
     conductor_id = data.get("conductor_id", existing.get("conductor_id"))
     conductor_id = int(conductor_id) if conductor_id else None
+    route_id = int(data.get("route_id", existing["route_id"]))
 
     # Hard conflict checks
     if await has_hard_conflict("vehicle_id", vehicle_id, new_start_time, session_id):
@@ -185,8 +202,13 @@ async def update_session(session_id: str, data: dict):
             f"Vehicle {vehicle_id} busy with driver {last['driver_id']} until {last['calculated_end_time']}"
         )
 
-    # Update end_time
-    est_minutes = await get_route_estimated_time(vehicle_id)
+    # Fetch route info
+    route = await get_route_by_id(route_id)
+    if not route:
+        raise ValueError(f"Route {route_id} not found")
+
+    data["route_name"] = route.get("route_name")
+    est_minutes = int(route["estimated_time"]) if "estimated_time" in route else 0
     data["end_time"] = new_start_time + timedelta(minutes=est_minutes) if est_minutes else None
 
     await SESSION_COLLECTION.update_one({"id": int(session_id)}, {"$set": data})
@@ -197,15 +219,3 @@ async def update_session(session_id: str, data: dict):
 async def delete_session(session_id: str):
     result = await SESSION_COLLECTION.delete_one({"id": int(session_id)})
     return result.deleted_count > 0
-
-
-# ---------------- Get Upcoming Immediate Session for Vehicle ----------------
-async def get_upcoming_session_for_vehicle(vehicle_id: str):
-    now = datetime.utcnow()
-    query = {
-        "vehicle_id": {"$in": [vehicle_id, int(vehicle_id)]},
-        "start_time": {"$gte": now}
-    }
-    doc = await SESSION_COLLECTION.find_one(query, sort=[("start_time", 1)])
-    return serialize(doc)
-

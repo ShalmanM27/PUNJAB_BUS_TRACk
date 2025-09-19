@@ -17,7 +17,7 @@ import {
   updateVehicle,
   deleteVehicle,
 } from "../api/vehicle";
-import { getUpcomingSessionForVehicle } from "../api/session";
+import { getSessions } from "../api/session";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function Vehicles() {
@@ -32,30 +32,38 @@ export default function Vehicles() {
   const [idSearch, setIdSearch] = useState(""); // For ID search
 
   const fetchVehicles = async () => {
-    const data = await getVehicles();
+    const [vehicleData, sessions] = await Promise.all([
+      getVehicles(),
+      getSessions(),
+    ]);
 
-    // Attach driver_id & conductor_id from upcoming session
-    const enrichedVehicles = await Promise.all(
-      data.map(async (vehicle) => {
-        try {
-          const session = await getUpcomingSessionForVehicle(vehicle.id);
-          return {
-            ...vehicle,
-            current_driver_id: session.driver_id,
-            current_conductor_id: session.conductor_id || "-",
-          };
-        } catch (err) {
-          // No upcoming session -> keep them empty
-          return {
-            ...vehicle,
-            current_driver_id: "-",
-            current_conductor_id: "-",
-          };
+    const now = new Date();
+
+    // Build map of upcoming sessions by vehicle_id
+    const upcomingMap = {};
+    sessions.forEach((s) => {
+      const start = new Date(s.start_time);
+      if (start >= now) {
+        if (
+          !upcomingMap[s.vehicle_id] ||
+          new Date(upcomingMap[s.vehicle_id].start_time) > start
+        ) {
+          upcomingMap[s.vehicle_id] = s;
         }
-      })
-    );
+      }
+    });
 
-    setVehicles(enrichedVehicles);
+    // Enrich vehicles with upcoming driver & conductor IDs
+    const enriched = vehicleData.map((v) => {
+      const session = upcomingMap[v.id];
+      return {
+        ...v,
+        current_driver_id: session ? session.driver_id : "-",
+        current_conductor_id: session ? session.conductor_id || "-" : "-",
+      };
+    });
+
+    setVehicles(enriched);
   };
 
   useEffect(() => {

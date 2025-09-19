@@ -8,7 +8,6 @@ import {
   TextField,
   Typography,
   IconButton,
-  Box,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -27,8 +26,7 @@ export default function Routes() {
     source: "",
     destination: "",
     vehicle_id: "",
-    route_points: [],
-    estimated_time: "", // added
+    estimated_time: "",
   });
   const [editId, setEditId] = useState(null);
   const [search, setSearch] = useState("");
@@ -36,8 +34,13 @@ export default function Routes() {
 
   // Fetch routes
   const fetchRoutes = async () => {
-    const data = await getRoutes();
-    setRoutes(data);
+    try {
+      const data = await getRoutes();
+      setRoutes(data || []);
+    } catch (err) {
+      console.error("Failed to fetch routes:", err);
+      setRoutes([]);
+    }
   };
 
   useEffect(() => {
@@ -48,12 +51,11 @@ export default function Routes() {
   const handleOpen = (route = null) => {
     if (route) {
       setForm({
-        route_name: route.route_name,
-        source: route.source,
-        destination: route.destination,
-        vehicle_id: route.vehicle_id,
-        route_points: route.route_points || [],
-        estimated_time: route.estimated_time || "", // added
+        route_name: route.route_name || "",
+        source: route.source || "",
+        destination: route.destination || "",
+        vehicle_id: route.vehicle_id || "",
+        estimated_time: route.estimated_time ?? "",
       });
       setEditId(route.id);
     } else {
@@ -62,8 +64,7 @@ export default function Routes() {
         source: "",
         destination: "",
         vehicle_id: "",
-        route_points: [],
-        estimated_time: "", // added
+        estimated_time: "",
       });
       setEditId(null);
     }
@@ -74,56 +75,40 @@ export default function Routes() {
 
   // Save
   const handleSave = async () => {
-    // Ensure route_points is an array of objects with latitude and longitude
-    const cleanedPoints = form.route_points
-      .filter(
-        (pt) =>
-          pt &&
-          typeof pt.latitude === "number" &&
-          typeof pt.longitude === "number"
-      )
-      .map((pt) => ({
-        latitude: pt.latitude,
-        longitude: pt.longitude,
-      }));
-    const submitForm = { ...form, route_points: cleanedPoints, estimated_time: parseInt(form.estimated_time, 10) };
-    if (editId) {
-      await updateRoute(editId, submitForm);
-    } else {
-      await createRoute(submitForm);
+    try {
+      const estimated_time = form.estimated_time
+        ? parseInt(form.estimated_time, 10)
+        : 0;
+
+      const submitForm = {
+        route_name: form.route_name,
+        source: form.source,
+        destination: form.destination,
+        vehicle_id: form.vehicle_id,
+        estimated_time,
+      };
+
+      if (editId) {
+        await updateRoute(editId, submitForm);
+      } else {
+        await createRoute(submitForm);
+      }
+      await fetchRoutes();
+      handleClose();
+    } catch (err) {
+      console.error("Failed to save route:", err);
+      // optionally show notification to user
     }
-    fetchRoutes();
-    handleClose();
   };
 
   // Delete
   const handleDelete = async (id) => {
-    await deleteRoute(id);
-    fetchRoutes();
-  };
-
-  // Route points handlers
-  const handleAddPoint = () => {
-    setForm((prev) => ({
-      ...prev,
-      route_points: [...prev.route_points, { latitude: 0, longitude: 0 }],
-    }));
-  };
-
-  const handlePointChange = (idx, field, value) => {
-    setForm((prev) => {
-      const points = [...prev.route_points];
-      points[idx][field] = parseFloat(value);
-      return { ...prev, route_points: points };
-    });
-  };
-
-  const handleRemovePoint = (idx) => {
-    setForm((prev) => {
-      const points = [...prev.route_points];
-      points.splice(idx, 1);
-      return { ...prev, route_points: points };
-    });
+    try {
+      await deleteRoute(id);
+      await fetchRoutes();
+    } catch (err) {
+      console.error("Failed to delete route:", err);
+    }
   };
 
   // Filtered routes based on idSearch and search
@@ -137,7 +122,8 @@ export default function Routes() {
       (route.route_name && route.route_name.toLowerCase().includes(q)) ||
       (route.source && route.source.toLowerCase().includes(q)) ||
       (route.destination && route.destination.toLowerCase().includes(q)) ||
-      (route.vehicle_id && route.vehicle_id.toString().toLowerCase().includes(q))
+      (route.vehicle_id &&
+        route.vehicle_id.toString().toLowerCase().includes(q))
     );
   });
 
@@ -147,16 +133,7 @@ export default function Routes() {
     { field: "source", headerName: "Source", flex: 1 },
     { field: "destination", headerName: "Destination", flex: 1 },
     { field: "vehicle_id", headerName: "Vehicle ID", flex: 1 },
-    {
-      field: "route_points",
-      headerName: "Points",
-      flex: 1,
-      renderCell: (params) =>
-        Array.isArray(params.row.route_points)
-          ? params.row.route_points.length
-          : 0,
-    },
-    { field: "estimated_time", headerName: "Est. Time (min)", flex: 1 }, // added
+    { field: "estimated_time", headerName: "Est. Time (min)", flex: 1 },
     {
       field: "actions",
       headerName: "Actions",
@@ -212,11 +189,7 @@ export default function Routes() {
         />
       </div>
       <div style={{ height: 400, marginTop: 20 }}>
-        <DataGrid
-          rows={filteredRoutes}
-          columns={columns}
-          getRowId={(row) => row.id}
-        />
+        <DataGrid rows={filteredRoutes} columns={columns} getRowId={(row) => row.id} />
       </div>
 
       {/* Dialog Form */}
@@ -257,55 +230,10 @@ export default function Routes() {
             type="number"
             fullWidth
             value={form.estimated_time}
-            onChange={(e) => setForm({ ...form, estimated_time: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, estimated_time: e.target.value })
+            }
           />
-          <Box mt={2}>
-            <Typography variant="subtitle1">Route Points</Typography>
-            {form.route_points.map((pt, idx) => (
-              <Box
-                key={idx}
-                display="flex"
-                alignItems="center"
-                gap={1}
-                mb={1}
-              >
-                <TextField
-                  label="Latitude"
-                  type="number"
-                  value={pt.latitude}
-                  onChange={(e) =>
-                    handlePointChange(idx, "latitude", e.target.value)
-                  }
-                  size="small"
-                />
-                <TextField
-                  label="Longitude"
-                  type="number"
-                  value={pt.longitude}
-                  onChange={(e) =>
-                    handlePointChange(idx, "longitude", e.target.value)
-                  }
-                  size="small"
-                />
-                <IconButton
-                  color="error"
-                  onClick={() => handleRemovePoint(idx)}
-                  aria-label="remove-point"
-                  size="small"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            ))}
-            <Button
-              variant="outlined"
-              onClick={handleAddPoint}
-              size="small"
-              sx={{ mt: 1 }}
-            >
-              Add Point
-            </Button>
-          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>

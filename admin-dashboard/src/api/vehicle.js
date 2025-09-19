@@ -32,12 +32,16 @@ export const deleteVehicle = async (id) => {
 
 // Assign driver
 export const assignDriver = async (vehicle_id, driver_id) => {
-  const res = await client.put(`/assign/vehicle/${vehicle_id}/assign-driver/${driver_id}`);
+  const res = await client.put(
+    `/assign/vehicle/${vehicle_id}/assign-driver/${driver_id}`
+  );
   return res.data;
 };
 
 // Assign conductor
 export const assignConductor = async (vehicle_id, conductor_id) => {
-  const res = await client.put(`/assign/vehicle/${vehicle_id}/assign-conductor/${conductor_id}`);
+  const res = await client.put(
+    `/assign/vehicle/${vehicle_id}/assign-conductor/${conductor_id}`
+  );
   return res.data;
 };

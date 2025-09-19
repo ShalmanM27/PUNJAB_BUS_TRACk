@@ -24,6 +24,7 @@ export default function Sessions() {
     driver_id: "",
     conductor_id: "",
     vehicle_id: "",
+    route_id: "", // ✅ added
     start_time: "",
   });
   const [error, setError] = useState("");
@@ -59,6 +60,7 @@ export default function Sessions() {
         driver_id: "",
         conductor_id: "",
         vehicle_id: "",
+        route_id: "", // reset
         start_time: "",
       });
       setEditId(null);
@@ -73,6 +75,7 @@ export default function Sessions() {
       driver_id: row.driver_id,
       conductor_id: row.conductor_id || "",
       vehicle_id: row.vehicle_id,
+      route_id: row.route_id || "", // ✅ keep track for editing
       start_time: row.start_time?.slice(0, 16), // format for datetime-local
     });
     setEditId(row.id);
@@ -91,9 +94,9 @@ export default function Sessions() {
     { field: "vehicle_id", headerName: "Vehicle ID", width: 120 },
     { field: "driver_id", headerName: "Driver ID", width: 120 },
     { field: "conductor_id", headerName: "Conductor ID", width: 140 },
-    { field: "route_id", headerName: "Route ID", width: 120 },
+    { field: "route_name", headerName: "Route Name", width: 200 }, // ✅ backend resolves route_id -> route_name
     { field: "start_time", headerName: "Start Time", width: 200 },
-    { field: "end_time", headerName: "End Time", width: 200 }, // <-- NEW COLUMN
+    { field: "end_time", headerName: "End Time", width: 200 },
     {
       field: "actions",
       headerName: "Actions",
@@ -134,6 +137,7 @@ export default function Sessions() {
             driver_id: "",
             conductor_id: "",
             vehicle_id: "",
+            route_id: "",
             start_time: "",
           });
           setEditId(null);
@@ -177,6 +181,14 @@ export default function Sessions() {
             name="vehicle_id"
             fullWidth
             value={formData.vehicle_id}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Route ID"
+            name="route_id"
+            fullWidth
+            value={formData.route_id}
             onChange={handleChange}
           />
           <TextField
