@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Button, Image, ScrollView, Alert } from "react-native";
+import { View, Text, StyleSheet, Button, Image, ScrollView } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../App"; // adjust path
 
 const DRIVER_ID = 1;
 
+type DriverDashboardNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "DriverDashboard"
+>;
+
 export default function DriverDashboardScreen() {
+  const navigation = useNavigation<DriverDashboardNavigationProp>();
+
   const [profile, setProfile] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -16,7 +24,7 @@ export default function DriverDashboardScreen() {
 
   async function fetchProfile() {
     try {
-      const res = await fetch(`http://localhost:8000/driver/${DRIVER_ID}`);
+      const res = await fetch(`http://172.16.140.217:8000/driver/${DRIVER_ID}`);
       setProfile(await res.json());
     } catch {
       setProfile(null);
@@ -25,9 +33,8 @@ export default function DriverDashboardScreen() {
 
   async function fetchSessions() {
     try {
-      const res = await fetch(`http://localhost:8000/session/`);
+      const res = await fetch(`http://172.16.140.217:8000/session/`);
       const allSessions = await res.json();
-      // Filter sessions for DRIVER_ID and next 3 days
       const now = new Date();
       const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
       setSessions(
@@ -49,60 +56,15 @@ export default function DriverDashboardScreen() {
     return now >= new Date(start.getTime() - 5 * 60000) && now < start;
   }
 
-  function canEndSession(session: any) {
-    return activeSessionId === session.id;
-  }
-
-  async function handleStartDrive(session: any) {
-    try {
-      // Call backend to start session (blockchain event)
-      await fetch("http://localhost:8000/session/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...session }),
-      });
-      setActiveSessionId(session.id);
-      setIsTracking(true);
-      // TODO: Start GPS tracking here
-      Alert.alert("Drive Started", "GPS tracking started.");
-    } catch {
-      Alert.alert("Error", "Failed to start drive.");
-    }
-  }
-
-  async function handleEndDrive(session: any) {
-    try {
-      // Call backend to end session (blockchain event)
-      await fetch("http://localhost:8000/session/end", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: session.id }),
-      });
-      setActiveSessionId(null);
-      setIsTracking(false);
-      // TODO: Stop GPS tracking here
-      Alert.alert("Drive Ended", "GPS tracking stopped.");
-    } catch {
-      Alert.alert("Error", "Failed to end drive.");
-    }
-  }
-
-  async function handleEmergency(session: any) {
-    try {
-      await fetch("http://localhost:8000/session/emergency", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: session.id }),
-      });
-      Alert.alert("Emergency Alert Sent");
-    } catch {
-      Alert.alert("Error", "Failed to send emergency alert.");
-    }
+  function handleStartDrive(session: any) {
+    // ✅ Now correctly typed navigation
+    navigation.navigate("MapScreen", { session });
   }
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Driver Dashboard</Text>
+
       {/* Profile Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Profile</Text>
@@ -121,7 +83,8 @@ export default function DriverDashboardScreen() {
           <Text>Loading profile...</Text>
         )}
       </View>
-      {/* Sessions Section */}
+
+      {/* Upcoming Sessions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
         {sessions.length === 0 && <Text>No sessions found.</Text>}
@@ -134,30 +97,12 @@ export default function DriverDashboardScreen() {
             <View style={styles.sessionActions}>
               <Button
                 title="Start Drive"
-                disabled={!canStartSession(session) || !!activeSessionId}
+                disabled={!canStartSession(session)}
                 onPress={() => handleStartDrive(session)}
-              />
-              <Button
-                title="End Drive"
-                disabled={!canEndSession(session)}
-                onPress={() => handleEndDrive(session)}
-              />
-              <Button
-                title="Emergency"
-                disabled={!canEndSession(session)}
-                color="red"
-                onPress={() => handleEmergency(session)}
               />
             </View>
           </View>
         ))}
-      </View>
-      {/* Map Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Map (Coming Soon)</Text>
-        <View style={styles.mapPlaceholder}>
-          <Text>Map will be shown here.</Text>
-        </View>
       </View>
     </ScrollView>
   );
@@ -171,6 +116,5 @@ const styles = StyleSheet.create({
   profileRow: { flexDirection: "row", alignItems: "center" },
   profileImage: { width: 64, height: 64, borderRadius: 32, marginRight: 16 },
   sessionCard: { backgroundColor: "#f2f2f2", padding: 12, borderRadius: 8, marginBottom: 12 },
-  sessionActions: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
-  mapPlaceholder: { height: 180, backgroundColor: "#e0e0e0", alignItems: "center", justifyContent: "center", borderRadius: 8 },
+  sessionActions: { flexDirection: "row", justifyContent: "flex-start", marginTop: 8 },
 });

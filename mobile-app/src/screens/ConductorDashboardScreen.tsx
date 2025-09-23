@@ -16,7 +16,7 @@ export default function ConductorDashboardScreen() {
 
   async function fetchProfile() {
     try {
-      const res = await fetch(`http://localhost:8000/conductor/${CONDUCTOR_ID}`);
+      const res = await fetch(`http://172.16.140.217:8000/conductor/${CONDUCTOR_ID}`);
       setProfile(await res.json());
     } catch {
       setProfile(null);
@@ -25,7 +25,7 @@ export default function ConductorDashboardScreen() {
 
   async function fetchSessions() {
     try {
-      const res = await fetch(`http://localhost:8000/session/`);
+      const res = await fetch(`http://172.16.140.217:8000/session/`);
       const allSessions = await res.json();
       // Filter sessions for CONDUCTOR_ID and next 3 days
       const now = new Date();
@@ -56,7 +56,7 @@ export default function ConductorDashboardScreen() {
   async function handleStartDrive(session: any) {
     try {
       // Call backend to start session as ConductorTakeover
-      await fetch("http://localhost:8000/session/start", {
+      await fetch("http://172.16.140.217:8000/session/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...session, takeover_by: "conductor" }),
@@ -73,7 +73,7 @@ export default function ConductorDashboardScreen() {
   async function handleEndDrive(session: any) {
     try {
       // Call backend to end session (blockchain event)
-      await fetch("http://localhost:8000/session/end", {
+      await fetch("http://172.16.140.217:8000/session/end", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: session.id, takeover_by: "conductor" }),
@@ -89,7 +89,7 @@ export default function ConductorDashboardScreen() {
 
   async function handleEmergency(session: any) {
     try {
-      await fetch("http://localhost:8000/session/emergency", {
+      await fetch("http://172.16.140.217:8000/session/emergency", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: session.id }),
