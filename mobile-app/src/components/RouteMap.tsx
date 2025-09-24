@@ -14,12 +14,16 @@ interface Coordinate {
 
 interface RouteMapProps {
   routeId: string;
+  session?: any; // Session object for GPS transmission
+  isLiveTracking?: boolean; // Flag to enable GPS transmission
+  onLocationUpdate?: (location: { latitude: number; longitude: number } | null) => void;
 }
 
-export function RouteMap({ routeId }: RouteMapProps) {
+export function RouteMap({ routeId, session, isLiveTracking = false, onLocationUpdate }: RouteMapProps) {
   const [coordinates, setCoordinates] = useState<Coordinate[]>([]);
   const [markers, setMarkers] = useState<Coordinate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [region, setRegion] = useState<Region>({
     latitude: 31.582045,
     longitude: 74.329376,
@@ -28,22 +32,109 @@ export function RouteMap({ routeId }: RouteMapProps) {
   });
 
   useEffect(() => {
+    let locationSubscription: Location.LocationSubscription | null = null;
+    let gpsTransmissionInterval: NodeJS.Timeout | null = null;
+
     (async () => {
       // Request location permission first
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert("Permission Denied", "Location permission is required to show your current position.");
+        onLocationUpdate?.(null);
       } else {
+        // Get initial location
         const loc = await Location.getCurrentPositionAsync({});
+        const newLocation = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
+        setCurrentLocation(newLocation);
+        onLocationUpdate?.(newLocation);
+        
         setRegion((prev) => ({
           ...prev,
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
         }));
+
+        // Watch location changes
+        locationSubscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 1000, // Update every second for smoother tracking
+            distanceInterval: 5, // Update when moved 5 meters
+          },
+          (location) => {
+            const newLoc = {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            };
+            setCurrentLocation(newLoc);
+            onLocationUpdate?.(newLoc);
+          }
+        );
+
+        // Start GPS transmission if live tracking is enabled
+        if (isLiveTracking && session) {
+          gpsTransmissionInterval = setInterval(() => {
+            transmitGPS(newLocation);
+          }, 5000); // Every 5 seconds
+        }
       }
       fetchRouteData();
     })();
-  }, []);
+
+    // Cleanup on unmount
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+      if (gpsTransmissionInterval) {
+        clearInterval(gpsTransmissionInterval);
+      }
+    };
+  }, [isLiveTracking]);
+
+  // Update GPS transmission interval when location changes
+  useEffect(() => {
+    if (isLiveTracking && session && currentLocation) {
+      const interval = setInterval(() => {
+        transmitGPS(currentLocation);
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [currentLocation, isLiveTracking, session]);
+
+  async function transmitGPS(location: { latitude: number; longitude: number }) {
+    if (!session || !location) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/telemetry/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: session.id.toString(),
+          driver_id: session.driver_id.toString(),
+          latitude: location.latitude,
+          longitude: location.longitude,
+          speed: 0, // Could be enhanced to calculate from location changes
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn('GPS transmission failed:', response.status, errorText);
+      } else {
+        console.log('GPS transmission successful');
+      }
+    } catch (error) {
+      console.warn('GPS transmission error:', error);
+    }
+  }
 
   async function fetchRouteData() {
     try {

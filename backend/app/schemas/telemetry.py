@@ -2,10 +2,12 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class TelemetryCreate(BaseModel):
-    vehicle_id: str
+    session_id: str
+    driver_id: str
     latitude: float
     longitude: float
     speed: Optional[float] = 0
+    timestamp: Optional[str] = None
 
 class TelemetryResponse(BaseModel):
     id: str
