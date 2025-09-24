@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import MapView, { Marker, Polyline, Region } from "react-native-maps";
+import * as Location from "expo-location";
 import Constants from "expo-constants";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL as string;
@@ -27,7 +28,21 @@ export function RouteMap({ routeId }: RouteMapProps) {
   });
 
   useEffect(() => {
-    fetchRouteData();
+    (async () => {
+      // Request location permission first
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Location permission is required to show your current position.");
+      } else {
+        const loc = await Location.getCurrentPositionAsync({});
+        setRegion((prev) => ({
+          ...prev,
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        }));
+      }
+      fetchRouteData();
+    })();
   }, []);
 
   async function fetchRouteData() {
@@ -52,12 +67,11 @@ export function RouteMap({ routeId }: RouteMapProps) {
       setMarkers(m);
 
       if (m.length > 0) {
-        setRegion({
+        setRegion((prev) => ({
+          ...prev,
           latitude: m[0].latitude,
           longitude: m[0].longitude,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.1,
-        });
+        }));
       }
       setLoading(false);
     } catch (err) {
@@ -76,7 +90,12 @@ export function RouteMap({ routeId }: RouteMapProps) {
   }
 
   return (
-    <MapView style={styles.map} initialRegion={region}>
+    <MapView
+      style={styles.map}
+      initialRegion={region}
+      showsUserLocation={true} // 🔵 Blue dot for current location
+      showsMyLocationButton={true} // Android: small location button
+    >
       {markers.map((coord, idx) => (
         <Marker
           key={idx}
