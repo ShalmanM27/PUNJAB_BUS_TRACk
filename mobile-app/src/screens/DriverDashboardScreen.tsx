@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Button, Image, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Button,
+  Image,
+  ScrollView
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../App"; // adjust path
+import Constants from "expo-constants";
+import { RootStackParamList } from "../../App"; // adjust the path if needed
 
+// ✅ Pull API URL from app.config.js
+const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL as string;
 const DRIVER_ID = 1;
 
 type DriverDashboardNavigationProp = NativeStackNavigationProp<
@@ -24,19 +34,25 @@ export default function DriverDashboardScreen() {
 
   async function fetchProfile() {
     try {
-      const res = await fetch(`http://172.16.140.217:8000/driver/${DRIVER_ID}`);
+      const res = await fetch(`${API_BASE_URL}/driver/${DRIVER_ID}`);
+      if (!res.ok) throw new Error("Profile request failed");
       setProfile(await res.json());
-    } catch {
+    } catch (err) {
+      console.warn("Profile fetch error:", err);
       setProfile(null);
     }
   }
 
   async function fetchSessions() {
     try {
-      const res = await fetch(`http://172.16.140.217:8000/session/`);
+      const res = await fetch(`${API_BASE_URL}/session/`);
+      if (!res.ok) throw new Error("Session request failed");
       const allSessions = await res.json();
       const now = new Date();
-      const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const threeDaysLater = new Date(
+        now.getTime() + 3 * 24 * 60 * 60 * 1000
+      );
+
       setSessions(
         allSessions.filter(
           (s: any) =>
@@ -45,7 +61,8 @@ export default function DriverDashboardScreen() {
             new Date(s.start_time) <= threeDaysLater
         )
       );
-    } catch {
+    } catch (err) {
+      console.warn("Session fetch error:", err);
       setSessions([]);
     }
   }
@@ -53,11 +70,11 @@ export default function DriverDashboardScreen() {
   function canStartSession(session: any) {
     const start = new Date(session.start_time);
     const now = new Date();
+    // allow starting within 5 minutes before the scheduled time
     return now >= new Date(start.getTime() - 5 * 60000) && now < start;
   }
 
   function handleStartDrive(session: any) {
-    // ✅ Now correctly typed navigation
     navigation.navigate("MapScreen", { session });
   }
 
@@ -71,7 +88,10 @@ export default function DriverDashboardScreen() {
         {profile ? (
           <View style={styles.profileRow}>
             {profile.image && (
-              <Image source={{ uri: profile.image }} style={styles.profileImage} />
+              <Image
+                source={{ uri: profile.image }}
+                style={styles.profileImage}
+              />
             )}
             <View>
               <Text>Name: {profile.name}</Text>
@@ -93,7 +113,9 @@ export default function DriverDashboardScreen() {
             <Text>Vehicle: {session.vehicle_id}</Text>
             <Text>Conductor: {session.conductor_id ?? "N/A"}</Text>
             <Text>Route: {session.route_name ?? "N/A"}</Text>
-            <Text>Date: {new Date(session.start_time).toLocaleString()}</Text>
+            <Text>
+              Date: {new Date(session.start_time).toLocaleString()}
+            </Text>
             <View style={styles.sessionActions}>
               <Button
                 title="Start Drive"
@@ -114,7 +136,21 @@ const styles = StyleSheet.create({
   section: { margin: 16, marginBottom: 0 },
   sectionTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 8 },
   profileRow: { flexDirection: "row", alignItems: "center" },
-  profileImage: { width: 64, height: 64, borderRadius: 32, marginRight: 16 },
-  sessionCard: { backgroundColor: "#f2f2f2", padding: 12, borderRadius: 8, marginBottom: 12 },
-  sessionActions: { flexDirection: "row", justifyContent: "flex-start", marginTop: 8 },
+  profileImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginRight: 16
+  },
+  sessionCard: {
+    backgroundColor: "#f2f2f2",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12
+  },
+  sessionActions: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    marginTop: 8
+  }
 });

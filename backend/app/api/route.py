@@ -30,7 +30,9 @@ async def get_route(route_id: str):
 @router.put("/{route_id}", response_model=RouteResponse)
 async def update_route(route_id: str, route_update: RouteUpdate):
     try:
-        updated = await route_crud.update_route(route_id, route_update.dict(exclude_unset=True))
+        updated = await route_crud.update_route(
+            route_id, route_update.dict(exclude_unset=True)
+        )
         if not updated:
             raise HTTPException(status_code=404, detail="Route not found")
         return updated

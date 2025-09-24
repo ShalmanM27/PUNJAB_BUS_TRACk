@@ -4,7 +4,6 @@ import { RouteMap } from "../components/RouteMap";
 
 export default function MapScreen({ route }: any) {
   const { session } = route.params;
-
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Route Map</Text>

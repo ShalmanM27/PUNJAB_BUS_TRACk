@@ -8,14 +8,14 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
     "App.tsx",
-    "src/**/*",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules"

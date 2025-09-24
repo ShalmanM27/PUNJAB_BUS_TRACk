@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Optional
 
 class BusStop(BaseModel):
@@ -11,13 +11,17 @@ class Location(BaseModel):
     latitude: float
     longitude: float
 
+class GeometryPoint(BaseModel):
+    latitude: float
+    longitude: float
+
 class RouteCreate(BaseModel):
     route_name: str
     source: Location
     destination: Location
     vehicle_id: str
-    route_points: List[BusStop] = []  # List of intermediate stops (can be empty)
-    estimated_time: int  # in minutes
+    route_points: List[BusStop] = []
+    estimated_time: int
 
 class RouteUpdate(BaseModel):
     route_name: Optional[str]
@@ -35,3 +39,4 @@ class RouteResponse(BaseModel):
     vehicle_id: str
     route_points: List[BusStop]
     estimated_time: int
+    route_geometry: List[GeometryPoint]
