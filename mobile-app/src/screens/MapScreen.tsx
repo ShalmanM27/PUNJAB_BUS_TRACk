@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, Button, Alert } from "react-native";
 import { RouteMap } from "../components/RouteMap";
 import { useNavigation } from "@react-navigation/native";
@@ -103,6 +103,17 @@ export default function MapScreen({ route }: any) {
     );
   };
 
+  // Compute if "End Route" button should be enabled
+  const canEndRoute = useMemo(() => {
+    if (!session?.end_time) return false;
+    const endTime = new Date(session.end_time);
+    if (isNaN(endTime.getTime())) return false;
+    const now = new Date();
+    // 5 minutes before end time
+    const fiveMinBeforeEnd = new Date(endTime.getTime() - 5 * 60 * 1000);
+    return now >= fiveMinBeforeEnd;
+  }, [session?.end_time]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Route Map</Text>
@@ -143,7 +154,13 @@ export default function MapScreen({ route }: any) {
             title="End Route"
             onPress={handleEndRoute}
             color="#F44336"
+            disabled={!canEndRoute}
           />
+          {!canEndRoute && (
+            <Text style={{ color: "#888", fontSize: 12, marginTop: 4, textAlign: "center" }}>
+              You can end the route only within 5 minutes of the scheduled end time.
+            </Text>
+          )}
         </View>
       )}
 
