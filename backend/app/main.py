@@ -15,6 +15,7 @@ from app.api import (
     audit,
     route,
     drive_status,
+    notification,
 )
 
 app = FastAPI(title="Punjab Bus Tracking API")
@@ -41,6 +42,7 @@ app.include_router(session.router, prefix="/session", tags=["Session"])
 app.include_router(audit.router, prefix="/audit", tags=["Audit"])
 app.include_router(route.router, prefix="/routes", tags=["Route"])
 app.include_router(drive_status.router, prefix="/drive-status", tags=["drive-status"])
+app.include_router(notification.router)
 
 
 # ---------------- Health Check ----------------
@@ -76,8 +78,6 @@ async def admin_list_sessions():
 
 # ---------------- Run with Uvicorn ----------------
 # uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-    from app.crud.session import list_sessions
-
     return await list_sessions()
 
 

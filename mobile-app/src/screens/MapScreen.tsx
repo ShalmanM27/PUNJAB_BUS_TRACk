@@ -5,6 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App"; // adjust path if needed
 import Constants from "expo-constants";
+import { MaterialIcons } from '@expo/vector-icons';
 
 const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL as string;
 
@@ -103,6 +104,30 @@ export default function MapScreen({ route }: any) {
     );
   };
 
+  // SOS Button handler
+  const handleSendSOS = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/notifications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "sos",
+          session_id: session.id,
+          driver_id: session.driver_id,
+          message: `🚨 SOS: Driver needs help on route ${session.route_id}`,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      if (res.ok) {
+        Alert.alert("SOS Sent", "Admin has been notified of your emergency.");
+      } else {
+        throw new Error("Failed to send SOS");
+      }
+    } catch (e) {
+      Alert.alert("Error", "Could not send SOS. Please try again.");
+    }
+  };
+
   // Compute if "End Route" button should be enabled
   const canEndRoute = useMemo(() => {
     if (!session?.end_time) return false;
@@ -161,6 +186,19 @@ export default function MapScreen({ route }: any) {
               You can end the route only within 5 minutes of the scheduled end time.
             </Text>
           )}
+        </View>
+      )}
+
+      {/* SOS Button */}
+      {!isRouteEnded && (
+        <View style={styles.sosContainer}>
+          <Button
+            title="Send SOS"
+            color="#d32f2f"
+            onPress={handleSendSOS}
+            accessibilityLabel="Send Emergency SOS"
+          />
+          <MaterialIcons name="sos" size={32} color="#d32f2f" style={{ marginTop: 4, alignSelf: "center" }} />
         </View>
       )}
 
@@ -257,5 +295,15 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     marginTop: 4,
     fontWeight: 'bold',
+  },
+  sosContainer: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    alignItems: "center",
+    backgroundColor: "#fff3f3",
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#d32f2f",
   },
 });
