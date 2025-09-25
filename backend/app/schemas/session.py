@@ -32,6 +32,3 @@ class SessionResponse(BaseModel):
     route_name: Optional[str] = None
     start_time: datetime
     end_time: Optional[datetime] = None
-
-    class Config:
-        orm_mode = True

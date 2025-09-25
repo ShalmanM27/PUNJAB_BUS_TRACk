@@ -14,6 +14,7 @@ from app.api import (
     session,
     audit,
     route,
+    drive_status,
 )
 
 app = FastAPI(title="Punjab Bus Tracking API")
@@ -39,20 +40,14 @@ app.include_router(admin_assign.router, prefix="/assign", tags=["Assignment"])
 app.include_router(session.router, prefix="/session", tags=["Session"])
 app.include_router(audit.router, prefix="/audit", tags=["Audit"])
 app.include_router(route.router, prefix="/routes", tags=["Route"])
+app.include_router(drive_status.router, prefix="/drive-status", tags=["drive-status"])
 
 
 # ---------------- Health Check ----------------
 @app.get("/health")
 async def health_check():
-    from app.config import w3, contract, RPC_URL
-
-    blockchain_status = "connected" if w3.is_connected() else "disconnected"
-    contract_status = "loaded" if contract else "not_loaded"
     return {
         "status": "ok",
-        "blockchain": blockchain_status,
-        "contract": contract_status,
-        "rpc_url": RPC_URL,
         "message": "Punjab Bus Tracking API is running",
     }
 
@@ -74,6 +69,13 @@ async def admin_list_vehicles():
 
 @app.get("/admin/sessions")
 async def admin_list_sessions():
+    from app.crud.session import list_sessions
+
+    return await list_sessions()
+
+
+# ---------------- Run with Uvicorn ----------------
+# uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     from app.crud.session import list_sessions
 
     return await list_sessions()

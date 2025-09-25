@@ -7,7 +7,7 @@ import {
   Image,
   ScrollView
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Constants from "expo-constants";
 import { RootStackParamList } from "../../App"; // adjust the path if needed
@@ -26,11 +26,16 @@ export default function DriverDashboardScreen() {
 
   const [profile, setProfile] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [currentSessions, setCurrentSessions] = useState<any[]>([]);
+  const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
+  const [driveStatuses, setDriveStatuses] = useState<{ [sessionId: string]: any }>({});
 
-  useEffect(() => {
-    fetchProfile();
-    fetchSessions();
-  }, []);
+  // ✅ Helper to safely parse date
+  function safeDate(dt: string) {
+    if (!dt) return null;
+    // Replace space with T to ensure correct parsing
+    return new Date(dt.replace(" ", "T"));
+  }
 
   async function fetchProfile() {
     try {
@@ -43,39 +48,117 @@ export default function DriverDashboardScreen() {
     }
   }
 
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProfile();
+      fetchSessions();
+    }, [])
+  );
+
+  async function fetchDriveStatus(sessionId: string) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/drive-status/${sessionId}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  }
+
+  async function fetchAllDriveStatuses(sessions: any[]) {
+    const statuses: { [sessionId: string]: any } = {};
+    await Promise.all(
+      sessions.map(async (s) => {
+        const status = await fetchDriveStatus(s.id);
+        statuses[s.id] = status;
+      })
+    );
+    setDriveStatuses(statuses);
+  }
+
   async function fetchSessions() {
     try {
       const res = await fetch(`${API_BASE_URL}/session/`);
       if (!res.ok) throw new Error("Session request failed");
       const allSessions = await res.json();
-      const now = new Date();
-      const threeDaysLater = new Date(
-        now.getTime() + 3 * 24 * 60 * 60 * 1000
+      const driverSessions = allSessions.filter(
+        (s: any) => String(s.driver_id) === String(DRIVER_ID)
       );
-
-      setSessions(
-        allSessions.filter(
-          (s: any) =>
-            String(s.driver_id) === String(DRIVER_ID) &&
-            new Date(s.start_time) >= now &&
-            new Date(s.start_time) <= threeDaysLater
-        )
-      );
+      setSessions(driverSessions);
+      fetchAllDriveStatuses(driverSessions);
     } catch (err) {
       console.warn("Session fetch error:", err);
       setSessions([]);
+      setCurrentSessions([]);
+      setUpcomingSessions([]);
     }
   }
 
-  function canStartSession(session: any) {
-    const start = new Date(session.start_time);
+  // ✅ Correct classification of current vs upcoming
+  useEffect(() => {
     const now = new Date();
-    // allow starting within 5 minutes before the scheduled time
-    return now >= new Date(start.getTime() - 5 * 60000) && now < start;
+    const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+    const ongoing = sessions.filter((s: any) => {
+      const start = safeDate(s.start_time);
+      const end = s.end_time ? safeDate(s.end_time) : null;
+      if (!start) return false;
+      if (driveStatuses[s.id]?.status === "completed") return false;
+      // Ongoing: started already and not ended yet
+      return start <= now && (!end || now < end);
+    });
+
+    const upcoming = sessions.filter((s: any) => {
+      const start = safeDate(s.start_time);
+      if (!start) return false;
+      if (driveStatuses[s.id]?.status === "completed") return false;
+      // Upcoming: strictly after now but within 3 days
+      return start > now && start <= threeDaysLater;
+    });
+
+    setCurrentSessions(ongoing);
+    setUpcomingSessions(upcoming);
+  }, [sessions, driveStatuses]);
+
+  async function handleStartDrive(session: any) {
+    if (driveStatuses[session.id]?.status !== "started") {
+      await fetch(`${API_BASE_URL}/drive-status/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: session.id,
+          status: "started",
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      await fetchAllDriveStatuses(sessions);
+    }
+    navigation.navigate("MapScreen", { session });
   }
 
-  function handleStartDrive(session: any) {
-    navigation.navigate("MapScreen", { session });
+  function canStartSession(session: any) {
+    const start = safeDate(session.start_time);
+    if (!start) return false;
+    const now = new Date();
+    // allow starting within 5 minutes before scheduled time
+    return now >= new Date(start.getTime() - 5 * 60000);
+  }
+
+  function formatDateTime(dt: string) {
+    if (!dt) return "N/A";
+    const d = safeDate(dt);
+    if (!d) return "Invalid date";
+    return (
+      d.getFullYear() +
+      "-" +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(d.getDate()).padStart(2, "0") +
+      " " +
+      String(d.getHours()).padStart(2, "0") +
+      ":" +
+      String(d.getMinutes()).padStart(2, "0")
+    );
   }
 
   return (
@@ -104,27 +187,53 @@ export default function DriverDashboardScreen() {
         )}
       </View>
 
+      {/* Current Session */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Current Session</Text>
+        {currentSessions.length === 0 && <Text>No ongoing session.</Text>}
+        {currentSessions.map((session) => {
+          const driveStatus = driveStatuses[session.id]?.status;
+          return (
+            <View key={session.id} style={styles.sessionCard}>
+              <Text>Vehicle: {session.vehicle_id}</Text>
+              <Text>Conductor: {session.conductor_id ?? "N/A"}</Text>
+              <Text>Route: {session.route_name ?? "N/A"}</Text>
+              <Text>Start Time: {formatDateTime(session.start_time)}</Text>
+              <Text>End Time: {formatDateTime(session.end_time)}</Text>
+              <View style={styles.sessionActions}>
+                <Button
+                  title={driveStatus === "started" ? "Resume Drive" : "Start Drive"}
+                  onPress={() => handleStartDrive(session)}
+                />
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
       {/* Upcoming Sessions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
-        {sessions.length === 0 && <Text>No sessions found.</Text>}
-        {sessions.map((session) => (
-          <View key={session.id} style={styles.sessionCard}>
-            <Text>Vehicle: {session.vehicle_id}</Text>
-            <Text>Conductor: {session.conductor_id ?? "N/A"}</Text>
-            <Text>Route: {session.route_name ?? "N/A"}</Text>
-            <Text>
-              Date: {new Date(session.start_time).toLocaleString()}
-            </Text>
-            <View style={styles.sessionActions}>
-              <Button
-                title="Start Drive"
-                disabled={!canStartSession(session)}
-                onPress={() => handleStartDrive(session)}
-              />
+        {upcomingSessions.length === 0 && <Text>No upcoming sessions found.</Text>}
+        {upcomingSessions.map((session) => {
+          const driveStatus = driveStatuses[session.id]?.status;
+          return (
+            <View key={session.id} style={styles.sessionCard}>
+              <Text>Vehicle: {session.vehicle_id}</Text>
+              <Text>Conductor: {session.conductor_id ?? "N/A"}</Text>
+              <Text>Route: {session.route_name ?? "N/A"}</Text>
+              <Text>Start Time: {formatDateTime(session.start_time)}</Text>
+              <Text>End Time: {formatDateTime(session.end_time)}</Text>
+              <View style={styles.sessionActions}>
+                <Button
+                  title={driveStatus === "started" ? "Resume Drive" : "Start Drive"}
+                  disabled={!canStartSession(session)}
+                  onPress={() => handleStartDrive(session)}
+                />
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </ScrollView>
   );

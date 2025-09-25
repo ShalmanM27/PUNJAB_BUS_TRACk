@@ -1,8 +1,7 @@
-from app.config import db, w3, contract, ACCOUNT_ADDRESS, PRIVATE_KEY
+from app.config import db
 from bson import ObjectId
 from app.crud.device import assign_device_to_user, attest_device
 from datetime import datetime
-from web3.exceptions import ContractLogicError
 
 ASSIGNMENT_COLLECTION = db.assignments
 
@@ -75,41 +74,8 @@ async def create_assignment(data: dict, send_to_chain=True):
     if existing:
         raise ValueError("Vehicle already has an assignment at this timestamp")
 
+    # Remove blockchain logic
     data["blockchain_tx_hash"] = None
-
-    if send_to_chain:
-        if not ACCOUNT_ADDRESS or not PRIVATE_KEY:
-            raise ValueError("ACCOUNT_ADDRESS and PRIVATE_KEY must be set for blockchain transaction")
-
-        fn = contract.functions.recordAssignment(
-            data["vehicle_id"],
-            str(data["route_id"]),
-            str(data["route_id"]),
-            data["driver_id"],
-            data["timestamp"]
-        )
-
-        # Estimate gas fallback
-        try:
-            gas_estimate = fn.estimate_gas({"from": ACCOUNT_ADDRESS})
-        except Exception:
-            gas_estimate = 300_000
-
-        # Nonce
-        nonce = w3.eth.get_transaction_count(ACCOUNT_ADDRESS, "pending")
-
-        tx = fn.build_transaction({
-            "from": ACCOUNT_ADDRESS,
-            "nonce": nonce,
-            "gas": gas_estimate,
-            "gasPrice": w3.eth.gas_price,
-            "chainId": 1043
-        })
-
-        signed = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-        tx_hash_hex = tx_hash.hex()
-        data["blockchain_tx_hash"] = tx_hash_hex
 
     result = await ASSIGNMENT_COLLECTION.insert_one(data)
     data["id"] = str(result.inserted_id)
