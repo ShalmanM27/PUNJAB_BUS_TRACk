@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 SESSION_COLLECTION = db.sessions
 COUNTERS_COLLECTION = db.counters
 ROUTE_COLLECTION = db.routes
+DRIVER_COLLECTION = db.drivers
 
 
 # ---------------- Serialize Document ----------------
@@ -219,3 +220,20 @@ async def update_session(session_id: str, data: dict):
 async def delete_session(session_id: str):
     result = await SESSION_COLLECTION.delete_one({"id": int(session_id)})
     return result.deleted_count > 0
+
+
+# ---------------- Find Active Sessions by Route ----------------
+async def find_active_sessions_by_route(route_id):
+    cursor = SESSION_COLLECTION.find({"route_id": str(route_id), "end_time": None})
+    sessions = []
+    async for doc in cursor:
+        sessions.append(await serialize(doc))
+    return sessions
+
+
+# ---------------- Get Driver Info ----------------
+async def get_driver_info(driver_id):
+    doc = await DRIVER_COLLECTION.find_one({"id": int(driver_id)}) if str(driver_id).isdigit() else None
+    if not doc:
+        return {}
+    return {"name": doc.get("name")}

@@ -29,8 +29,7 @@ export default function NotificationLayout() {
   const [latest, setLatest] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notifState, setNotifState] = useState({});
-  const pollingRef = useRef(null);
-  const lastNotifIdRef = useRef(null); // Track last notification id
+  const lastNotifIdRef = useRef(null);
   const wsRef = useRef(null);
 
   // Helper to check if there are any uncompleted notifications
@@ -41,6 +40,7 @@ export default function NotificationLayout() {
   useEffect(() => {
     let isMounted = true;
 
+    // Initial fetch to populate notifications
     const fetchNotifications = async () => {
       try {
         const res = await fetch(NOTIF_API_URL);
@@ -64,7 +64,6 @@ export default function NotificationLayout() {
     };
 
     fetchNotifications(); // initial fetch
-    pollingRef.current = setInterval(fetchNotifications, 2000);
 
     // --- WebSocket setup ---
     const wsUrl = NOTIF_API_URL.replace(/^http/, "ws") + "ws/notifications";
@@ -89,10 +88,6 @@ export default function NotificationLayout() {
 
     return () => {
       isMounted = false;
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -141,11 +136,6 @@ export default function NotificationLayout() {
         [id]: { ...prev[id], completed: true },
       }));
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-      // If no notifications left, stop polling
-      if (notifications.length === 1 && pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
     } catch {}
   };
 

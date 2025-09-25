@@ -8,10 +8,12 @@ import ConductorDashboardScreen from "./src/screens/ConductorDashboardScreen"; /
 import MapScreen from "./src/screens/MapScreen"; // Ensure this file exists and is named exactly
 import PassengerLoginScreen from "./src/screens/PassengerLoginScreen";
 import PassengerDashboardScreen from "./src/screens/PassengerDashboardScreen"; // Ensure this file exists and is named exactly
+import PassengerProfileScreen from "./src/screens/PassengerProfileScreen"; // Ensure this file exists and is named exactly
 
 export type RootStackParamList = {
   DriverDashboard: undefined;
   MapScreen: { session: any };
+  PassengerProfile: { profile: any }; // Add this line
 };
 
 const Stack = createStackNavigator();
@@ -26,6 +28,7 @@ export default function App() {
         <Stack.Screen name="MapScreen" component={MapScreen} />
         <Stack.Screen name="PassengerLogin" component={PassengerLoginScreen} />
         <Stack.Screen name="PassengerDashboard" component={PassengerDashboardScreen} />
+        <Stack.Screen name="PassengerProfile" component={PassengerProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

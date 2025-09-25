@@ -1,6 +1,7 @@
 import aiohttp
 from app.config import db
 from bson import ObjectId
+from geopy.distance import geodesic
 
 ROUTE_COLLECTION = db.routes
 COUNTERS_COLLECTION = db.counters  # For auto-increment
@@ -117,3 +118,32 @@ async def update_route(route_id: str, data: dict):
 async def delete_route(route_id: str):
     result = await ROUTE_COLLECTION.delete_one({"id": int(route_id)})
     return result.deleted_count > 0
+
+# ---------------- Find Routes by Destination ----------------
+async def find_routes_by_destination(destination_name: str):
+    cursor = ROUTE_COLLECTION.find({"destination.name": destination_name})
+    routes = []
+    async for doc in cursor:
+        routes.append(serialize(doc))
+    return routes
+
+# ---------------- Find Nearest Stop and Routes ----------------
+async def find_nearest_stop_and_routes(routes, lat, lng):
+    """
+    Given a list of routes and a coordinate, find the nearest stop among all route_points.
+    Returns (nearest_stop_name, [routes_that_include_stop])
+    """
+    min_dist = float("inf")
+    nearest_stop = None
+    nearest_routes = []
+    for route in routes:
+        for stop in route.get("route_points", []):
+            dist = geodesic((lat, lng), (stop["latitude"], stop["longitude"])).meters
+            if dist < min_dist:
+                min_dist = dist
+                nearest_stop = stop["name"]
+    # Find all routes that include this stop
+    for route in routes:
+        if any(s["name"] == nearest_stop for s in route.get("route_points", [])):
+            nearest_routes.append(route)
+    return nearest_stop, nearest_routes

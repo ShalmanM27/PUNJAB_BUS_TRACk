@@ -16,7 +16,6 @@ export default function PassengerLoginScreen({ navigation }: { navigation: any }
     image: "",
   });
 
-  // Image picker
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -29,11 +28,9 @@ export default function PassengerLoginScreen({ navigation }: { navigation: any }
     }
   };
 
-  // Register new passenger
   const handleSignup = async () => {
     setLoading(true);
     try {
-      // Prepare payload: convert empty string to null for email and image
       const payload = {
         ...form,
         email: form.email.trim() === "" ? null : form.email,
@@ -55,7 +52,6 @@ export default function PassengerLoginScreen({ navigation }: { navigation: any }
     }
   };
 
-  // Login (fetch by phone and password)
   const handleLogin = async () => {
     setLoading(true);
     try {
@@ -95,7 +91,6 @@ export default function PassengerLoginScreen({ navigation }: { navigation: any }
     );
   }
 
-  // Login UI
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Passenger Login</Text>
