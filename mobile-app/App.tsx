@@ -6,6 +6,8 @@ import RoleSelectionScreen from "./src/screens/RoleSelectionScreen";
 import DriverDashboardScreen from "./src/screens/DriverDashboardScreen"; // Ensure this file exists and is named exactly
 import ConductorDashboardScreen from "./src/screens/ConductorDashboardScreen"; // Ensure this file exists and is named exactly
 import MapScreen from "./src/screens/MapScreen"; // Ensure this file exists and is named exactly
+import PassengerLoginScreen from "./src/screens/PassengerLoginScreen";
+import PassengerDashboardScreen from "./src/screens/PassengerDashboardScreen"; // Ensure this file exists and is named exactly
 
 export type RootStackParamList = {
   DriverDashboard: undefined;
@@ -22,6 +24,8 @@ export default function App() {
         <Stack.Screen name="DriverDashboard" component={DriverDashboardScreen} />
         <Stack.Screen name="ConductorDashboard" component={ConductorDashboardScreen} />
         <Stack.Screen name="MapScreen" component={MapScreen} />
+        <Stack.Screen name="PassengerLogin" component={PassengerLoginScreen} />
+        <Stack.Screen name="PassengerDashboard" component={PassengerDashboardScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -10,6 +10,7 @@ def serialize(doc):
     # Always return id as string for API compatibility
     doc["id"] = str(doc.get("id", str(doc.get("_id"))))
     doc.pop("_id", None)
+    # Do NOT remove password here; let API endpoint handle it
     return doc
 
 # ---------------- Utility for auto-increment ----------------
@@ -24,8 +25,8 @@ async def get_next_passenger_id():
 
 # ---------------- Create Passenger (Self-registration) ----------------
 async def create_passenger(data: dict):
-    if await is_phone_unique(data["phone"]) is False:
-        raise ValueError("Phone number already exists")
+    if await is_phone_or_email_unique(data["phone"], data.get("email")) is False:
+        raise ValueError("Phone number or email already exists")
     data["id"] = await get_next_passenger_id()
     result = await PASSENGER_COLLECTION.insert_one(data)
     # Return serialized document with string id
@@ -50,6 +51,11 @@ async def get_passenger_by_id(passenger_id: str):
             doc = None
     return serialize(doc)
 
+# ---------------- Get Passenger by Phone ----------------
+async def get_passenger_by_phone(phone: str):
+    doc = await PASSENGER_COLLECTION.find_one({"phone": phone})
+    return serialize(doc)
+
 # ---------------- Update Passenger ----------------
 async def update_passenger(passenger_id: str, data: dict):
     await PASSENGER_COLLECTION.update_one({"id": int(passenger_id)}, {"$set": data})
@@ -61,9 +67,13 @@ async def delete_passenger(passenger_id: str):
     return result.deleted_count > 0
 
 # ---------------- Utility ----------------
-async def is_phone_unique(phone: str):
+async def is_phone_or_email_unique(phone: str, email: str = None):
     collections = [db.admins, db.drivers, db.conductors, db.passengers]
     for col in collections:
         if await col.find_one({"phone": phone}):
             return False
+        if email:
+            # Email can be None or empty string, skip if not provided
+            if await col.find_one({"email": email}):
+                return False
     return True

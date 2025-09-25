@@ -12,11 +12,11 @@ class Role(str, Enum):
 class BaseUser(BaseModel):
     id: Optional[str]
     name: str
-    email: Optional[EmailStr]
     phone: str
-    role: Role
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None  # Added for all users who can log in
     device_ids: Optional[List[str]] = []
-    image: Optional[str] = None  # Added
+    image: Optional[str] = None
 
 class AdminUser(BaseUser):
     role: Role = Role.ADMIN
@@ -27,7 +27,7 @@ class DriverUser(BaseUser):
 
 class ConductorUser(BaseUser):
     role: Role = Role.CONDUCTOR
-    email: Optional[EmailStr] = None  # Added
 
 class PassengerUser(BaseUser):
+    role: Role = Role.PASSENGER
     role: Role = Role.PASSENGER

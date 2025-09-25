@@ -6,8 +6,9 @@ class AdminCreate(BaseModel):
     name: str
     phone: str
     email: Optional[EmailStr] = None
+    password: str  # Added
     device_ids: Optional[List[str]] = []
-    image: Optional[str] = None  # Added
+    image: Optional[str] = None
 
 class AdminResponse(BaseModel):
     id: str
@@ -15,47 +16,49 @@ class AdminResponse(BaseModel):
     phone: str
     email: Optional[str] = None
     device_ids: List[str] = []
-    image: Optional[str] = None  # Added
+    image: Optional[str] = None
 
 # ---------------- Driver ----------------
 class DriverCreate(BaseModel):
     name: str
     phone: str
     license_number: str
-    image: Optional[str] = None  # Added
+    password: str  # Added
+    image: Optional[str] = None
 
 class DriverResponse(BaseModel):
     id: str
     name: str
     phone: str
     license_number: str
-    image: Optional[str] = None  # Added
+    image: Optional[str] = None
 
 # ---------------- Conductor ----------------
 class ConductorCreate(BaseModel):
     name: str
     phone: str
-    email: Optional[EmailStr] = None  # Added
-    image: Optional[str] = None  # Added
+    email: Optional[EmailStr] = None
+    password: str  # Added
+    image: Optional[str] = None
 
 class ConductorResponse(BaseModel):
     id: str
     name: str
     phone: str
-    email: Optional[str] = None  # Added
-    image: Optional[str] = None  # Added
+    email: Optional[str] = None
+    image: Optional[str] = None
 
 # ---------------- Passenger ----------------
 class PassengerCreate(BaseModel):
     name: str
     phone: str
     email: Optional[EmailStr] = None
-    password: str  # hashed in backend
-    image: Optional[str] = None  # Added
+    password: str
+    image: Optional[str] = None
 
 class PassengerResponse(BaseModel):
     id: str
     name: str
     phone: str
     email: Optional[str] = None
-    image: Optional[str] = None  # Added
+    image: Optional[str] = None

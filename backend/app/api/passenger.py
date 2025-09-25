@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from typing import List
 from app.schemas.user import PassengerCreate, PassengerResponse
 from app.crud import passenger as passenger_crud
@@ -12,6 +12,18 @@ async def register_passenger(passenger: PassengerCreate):
         return await passenger_crud.create_passenger(passenger.dict())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ------------------- Login endpoint -------------------
+@router.post("/login", response_model=PassengerResponse)
+async def login_passenger(
+    phone: str = Body(...), password: str = Body(...)
+):
+    passenger = await passenger_crud.get_passenger_by_phone(phone)
+    if not passenger or passenger.get("password") != password:
+        raise HTTPException(status_code=401, detail="Incorrect phone or password")
+    # Remove password before returning
+    passenger.pop("password", None)
+    return passenger
 
 # ------------------- Admin-only endpoints -------------------
 @router.get("/", response_model=List[PassengerResponse])

@@ -17,6 +17,12 @@ export default function RoleSelectionScreen({ navigation }: { navigation: any })
           onPress={() => navigation.replace("ConductorDashboard")}
         />
       </View>
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Passenger"
+          onPress={() => navigation.replace("PassengerLogin")}
+        />
+      </View>
     </View>
   );
 }
