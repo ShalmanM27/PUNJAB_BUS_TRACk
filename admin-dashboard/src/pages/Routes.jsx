@@ -15,12 +15,78 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
+import RoomIcon from "@mui/icons-material/Room";
 import {
   getRoutes,
   createRoute,
   updateRoute,
   deleteRoute,
 } from "../api/route";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+// Fix marker icon for leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// MapPickerDialog component
+function MapPickerDialog({ open, onClose, onPick, initialPosition }) {
+  const [position, setPosition] = useState(initialPosition || [31.1471, 75.3412]); // Punjab default
+
+  function LocationMarker() {
+    useMapEvents({
+      click(e) {
+        setPosition([e.latlng.lat, e.latlng.lng]);
+      },
+    });
+    return <Marker position={position} />;
+  }
+
+  useEffect(() => {
+    if (initialPosition) setPosition(initialPosition);
+  }, [initialPosition, open]);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Pick Location on Map</DialogTitle>
+      <DialogContent>
+        <div style={{ height: 400, width: "100%" }}>
+          <MapContainer
+            center={position}
+            zoom={10}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap contributors"
+            />
+            <LocationMarker />
+          </MapContainer>
+        </div>
+        <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              onPick(position);
+              onClose();
+            }}
+          >
+            Select
+          </Button>
+        </Box>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Routes() {
   const [routes, setRoutes] = useState([]);
@@ -36,6 +102,13 @@ export default function Routes() {
   const [editId, setEditId] = useState(null);
   const [search, setSearch] = useState("");
   const [idSearch, setIdSearch] = useState(""); // For ID search
+
+  // Map picker state
+  const [mapPicker, setMapPicker] = useState({
+    open: false,
+    target: null, // "source" | "destination" | { type: "stop", idx: number }
+    initial: null,
+  });
 
   // Fetch routes
   const fetchRoutes = async () => {
@@ -296,6 +369,36 @@ export default function Routes() {
     },
   ];
 
+  // Map picker handlers
+  const openMapPicker = (target, initial) => {
+    setMapPicker({ open: true, target, initial });
+  };
+  const closeMapPicker = () => setMapPicker((prev) => ({ ...prev, open: false }));
+
+  const handleMapPick = (latlng) => {
+    const [lat, lng] = latlng;
+    if (mapPicker.target === "source") {
+      setForm((prev) => ({
+        ...prev,
+        source: { ...prev.source, latitude: lat.toString(), longitude: lng.toString() },
+      }));
+    } else if (mapPicker.target === "destination") {
+      setForm((prev) => ({
+        ...prev,
+        destination: { ...prev.destination, latitude: lat.toString(), longitude: lng.toString() },
+      }));
+    } else if (mapPicker.target && mapPicker.target.type === "stop") {
+      setForm((prev) => ({
+        ...prev,
+        route_points: prev.route_points.map((stop, i) =>
+          i === mapPicker.target.idx
+            ? { ...stop, latitude: lat.toString(), longitude: lng.toString() }
+            : stop
+        ),
+      }));
+    }
+  };
+
   return (
     <Box sx={{ p: { xs: 1, md: 3 }, bgcolor: "#eaf3fb", minHeight: "100vh" }}>
       <Card
@@ -527,7 +630,7 @@ export default function Routes() {
           <Typography variant="subtitle1" sx={{ mt: 2 }}>
             Source
           </Typography>
-          <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
+          <Box sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}>
             <TextField
               label="Source Name"
               size="small"
@@ -566,11 +669,26 @@ export default function Routes() {
               sx={{ flex: 1 }}
               type="number"
             />
+            <IconButton
+              color="primary"
+              onClick={() =>
+                openMapPicker(
+                  "source",
+                  form.source.latitude && form.source.longitude
+                    ? [parseFloat(form.source.latitude), parseFloat(form.source.longitude)]
+                    : undefined
+                )
+              }
+              sx={{ ml: 1 }}
+              title="Pick on Map"
+            >
+              <RoomIcon />
+            </IconButton>
           </Box>
           <Typography variant="subtitle1" sx={{ mt: 2 }}>
             Destination
           </Typography>
-          <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
+          <Box sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}>
             <TextField
               label="Destination Name"
               size="small"
@@ -615,6 +733,21 @@ export default function Routes() {
               sx={{ flex: 1 }}
               type="number"
             />
+            <IconButton
+              color="primary"
+              onClick={() =>
+                openMapPicker(
+                  "destination",
+                  form.destination.latitude && form.destination.longitude
+                    ? [parseFloat(form.destination.latitude), parseFloat(form.destination.longitude)]
+                    : undefined
+                )
+              }
+              sx={{ ml: 1 }}
+              title="Pick on Map"
+            >
+              <RoomIcon />
+            </IconButton>
           </Box>
           <TextField
             margin="dense"
@@ -673,6 +806,21 @@ export default function Routes() {
                 sx={{ flex: 1 }}
                 type="number"
               />
+              <IconButton
+                color="primary"
+                onClick={() =>
+                  openMapPicker(
+                    { type: "stop", idx },
+                    stop.latitude && stop.longitude
+                      ? [parseFloat(stop.latitude), parseFloat(stop.longitude)]
+                      : undefined
+                  )
+                }
+                sx={{ ml: 1 }}
+                title="Pick on Map"
+              >
+                <RoomIcon />
+              </IconButton>
               <Button
                 color="error"
                 onClick={() => handleRemoveStop(idx)}
@@ -701,6 +849,13 @@ export default function Routes() {
           </Button>
         </DialogActions>
       </Dialog>
+      {/* Map Picker Dialog */}
+      <MapPickerDialog
+        open={mapPicker.open}
+        onClose={closeMapPicker}
+        onPick={handleMapPick}
+        initialPosition={mapPicker.initial}
+      />
     </Box>
   );
 }
