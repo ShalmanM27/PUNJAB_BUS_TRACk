@@ -13,9 +13,6 @@ class BaseUser(BaseModel):
     id: Optional[str]
     name: str
     phone: str
-    email: Optional[EmailStr] = None
-    password: Optional[str] = None  # Added for all users who can log in
-    device_ids: Optional[List[str]] = []
     image: Optional[str] = None
 
 class AdminUser(BaseUser):
@@ -27,7 +24,10 @@ class DriverUser(BaseUser):
 
 class ConductorUser(BaseUser):
     role: Role = Role.CONDUCTOR
+    email: Optional[EmailStr] = None
 
 class PassengerUser(BaseUser):
     role: Role = Role.PASSENGER
+    email: Optional[EmailStr] = None
+    password: str
     role: Role = Role.PASSENGER

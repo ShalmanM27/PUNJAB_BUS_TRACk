@@ -251,7 +251,7 @@ export default function Conductors() {
                 }}
               />
             </Box>
-            {/* Search by Name/Phone/License */}
+            {/* Search by Name/Phone/Email */}
             <Box
               sx={{
                 display: "flex",
@@ -272,7 +272,7 @@ export default function Conductors() {
             >
               <SearchIcon sx={{ color: "#1976d2", mr: 1, fontSize: 22 }} />
               <TextField
-                label="Search by Name, Phone, or License"
+                label="Search by Name, Phone, or Email"
                 variant="standard"
                 size="small"
                 value={search}
@@ -412,12 +412,10 @@ export default function Conductors() {
           />
           <TextField
             margin="dense"
-            label="License Number"
+            label="Email"
             fullWidth
-            value={form.license_number}
-            onChange={(e) =>
-              setForm({ ...form, license_number: e.target.value })
-            }
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <Box sx={{ mt: 2 }}>
             <Button

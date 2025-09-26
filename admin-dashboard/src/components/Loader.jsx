@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import ReactDOM from "react-dom";
 import {
   Snackbar,
   Alert,
@@ -132,108 +133,210 @@ export default function NotificationLayout({ navbarHeight = 72 }) {
     } catch {}
   };
 
-  return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: 0,
-        right: { xs: 10, md: 32 + 260 },
-        zIndex: 2000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        width: "auto",
-        pointerEvents: "none",
-        height: { xs: navbarHeight - 8, sm: navbarHeight }, // Adjusted height
-        transition: "right 0.3s cubic-bezier(.4,0,.2,1)",
-      }}
-    >
-      <Box
-        sx={{
-          pointerEvents: "auto",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <Paper
-          elevation={6}
-          sx={{
-            borderRadius: "50%",
-            boxShadow: "0 8px 32px rgba(67,206,162,0.18)",
-            bgcolor: "rgba(255,255,255,0.8)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            p: 0.5,
-            transition: "box-shadow 0.2s",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: 48,
-            width: 48,
-            mt: "auto",
-            mb: "auto", // Center vertically
-          }}
-        >
-          <IconButton
-            color="primary"
-            onClick={handleBellClick}
+  // --- SOS Portal ---
+  const sosPortal = (
+    latest && latest.type === "sos" && open
+      ? ReactDOM.createPortal(
+          <Box
             sx={{
-              width: 44,
-              height: 44,
-              "&:hover": {
-                bgcolor: "#e3eafc",
-                boxShadow: "0 4px 16px rgba(67,206,162,0.18)",
-              },
-              transition: "box-shadow 0.2s, background 0.2s",
+              position: "fixed",
+              left: 0,
+              right: 0,
+              bottom: 32,
+              zIndex: 5000,
+              display: "flex",
+              justifyContent: "center",
+              pointerEvents: "none",
             }}
           >
-            <Badge
-              badgeContent={unreadCount}
-              color="error"
+            <Paper
+              elevation={8}
               sx={{
-                "& .MuiBadge-badge": {
-                  fontWeight: 700,
-                  fontSize: 14,
-                  minWidth: 24,
-                  height: 24,
-                  borderRadius: "50%",
-                  boxShadow: "0 2px 8px rgba(211,47,47,0.18)",
-                  background: "linear-gradient(90deg, #d32f2f 0%, #ff8a65 100%)",
-                  color: "#fff",
-                },
+                px: 4,
+                py: 2,
+                borderRadius: 3,
+                background: "linear-gradient(90deg, #fff0f0 0%, #ffeaea 100%)",
+                color: "#d32f2f",
+                fontWeight: 800,
+                fontSize: 22,
+                boxShadow: "0 8px 32px rgba(211,47,47,0.18)",
+                textAlign: "center",
+                minWidth: 320,
+                maxWidth: 600,
+                pointerEvents: "auto",
+                border: "2px solid #d32f2f",
+                animation: "sos-pop 0.4s cubic-bezier(.4,0,.2,1)",
               }}
             >
-              <NotificationsIcon sx={{ fontSize: 32 }} />
-            </Badge>
-          </IconButton>
-        </Paper>
-      </Box>
+              🚨 {latest.message}
+            </Paper>
+            <style>
+              {`
+                @keyframes sos-pop {
+                  0% { transform: translateY(40px) scale(0.95); opacity: 0; }
+                  100% { transform: translateY(0) scale(1); opacity: 1; }
+                }
+              `}
+            </style>
+          </Box>,
+          document.body
+        )
+      : null
+  );
 
-      {/* Snackbar & Dialog code remains the same */}
-      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
-        {latest && (
-          <Alert
-            onClose={handleClose}
-            severity={latest.type === "sos" ? "error" : "info"}
+  return (
+    <>
+      {/* Fixed Bell Icon at Top Right */}
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          right: { xs: 10, md: 32 + 260 },
+          zIndex: 2000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          width: "auto",
+          pointerEvents: "none",
+          height: { xs: navbarHeight - 8, sm: navbarHeight },
+          transition: "right 0.3s cubic-bezier(.4,0,.2,1)",
+        }}
+      >
+        <Box
+          sx={{
+            pointerEvents: "auto",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <Paper
+            elevation={6}
             sx={{
-              width: "100%",
-              borderRadius: 3,
-              boxShadow: "0 4px 16px rgba(25,118,210,0.12)",
-              fontWeight: 600,
-              fontSize: 17,
-              background:
-                latest.type === "sos"
-                  ? "linear-gradient(90deg, #fff0f0 0%, #ffeaea 100%)"
-                  : "linear-gradient(90deg, #e3eafc 0%, #f8fafc 100%)",
-              color: latest.type === "sos" ? "#d32f2f" : "#1976d2",
+              borderRadius: "50%",
+              boxShadow: "0 8px 32px rgba(67,206,162,0.18)",
+              bgcolor: "rgba(255,255,255,0.8)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              p: 0.5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: 48,
+              width: 48,
             }}
           >
-            {latest.message}
-          </Alert>
-        )}
-      </Snackbar>
-      {/* Dialog remains unchanged */}
-    </Box>
+            <IconButton
+              color="primary"
+              onClick={handleBellClick}
+              sx={{
+                width: 44,
+                height: 44,
+                "&:hover": {
+                  bgcolor: "#e3eafc",
+                  boxShadow: "0 4px 16px rgba(67,206,162,0.18)",
+                },
+                transition: "box-shadow 0.2s, background 0.2s",
+              }}
+            >
+              <Badge
+                badgeContent={unreadCount}
+                color="error"
+                sx={{
+                  "& .MuiBadge-badge": {
+                    fontWeight: 700,
+                    fontSize: 14,
+                    minWidth: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    boxShadow: "0 2px 8px rgba(211,47,47,0.18)",
+                    background: "linear-gradient(90deg, #d32f2f 0%, #ff8a65 100%)",
+                    color: "#fff",
+                  },
+                }}
+              >
+                <NotificationsIcon sx={{ fontSize: 32 }} />
+              </Badge>
+            </IconButton>
+          </Paper>
+        </Box>
+      </Box>
+
+      {/* SOS Message Portal */}
+      {sosPortal}
+
+      {/* Dialog for notifications */}
+      <Dialog open={dialogOpen} onClose={handleDialogClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Notifications</DialogTitle>
+        <DialogContent dividers>
+          {notifications.length === 0 ? (
+            <Typography>No notifications.</Typography>
+          ) : (
+            <List>
+              {notifications.map((notif) => (
+                <React.Fragment key={notif.id}>
+                  <ListItem
+                    alignItems="flex-start"
+                    sx={{
+                      bgcolor: notif.type === "sos" ? "#fff0f0" : "#f8fafc",
+                      borderRadius: 2,
+                      mb: 1,
+                      boxShadow:
+                        notif.type === "sos"
+                          ? "0 2px 8px rgba(211,47,47,0.08)"
+                          : "0 2px 8px rgba(25,118,210,0.08)",
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Typography
+                          sx={{
+                            fontWeight: notif.type === "sos" ? 700 : 500,
+                            color: notif.type === "sos" ? "#d32f2f" : "#1976d2",
+                          }}
+                        >
+                          {notif.message}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography variant="caption" color="text.secondary">
+                          {notif.timestamp}
+                        </Typography>
+                      }
+                    />
+                    <ListItemSecondaryAction>
+                      {notif.status !== "completed" && (
+                        <>
+                          <Button
+                            size="small"
+                            color="primary"
+                            onClick={() => handleRead(notif.id)}
+                            disabled={notifState[notif.id]?.read}
+                            sx={{ mr: 1 }}
+                          >
+                            Mark as Read
+                          </Button>
+                          <Button
+                            size="small"
+                            color="success"
+                            onClick={() => handleCompleted(notif.id)}
+                          >
+                            Completed
+                          </Button>
+                        </>
+                      )}
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                  <Divider />
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDialogClose}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

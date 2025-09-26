@@ -5,8 +5,6 @@ from typing import List, Optional
 class AdminCreate(BaseModel):
     name: str
     phone: str
-    email: Optional[EmailStr] = None
-    password: str  # Added
     device_ids: Optional[List[str]] = []
     image: Optional[str] = None
 
@@ -14,7 +12,6 @@ class AdminResponse(BaseModel):
     id: str
     name: str
     phone: str
-    email: Optional[str] = None
     device_ids: List[str] = []
     image: Optional[str] = None
 
@@ -23,7 +20,6 @@ class DriverCreate(BaseModel):
     name: str
     phone: str
     license_number: str
-    password: str  # Added
     image: Optional[str] = None
 
 class DriverResponse(BaseModel):
@@ -38,7 +34,6 @@ class ConductorCreate(BaseModel):
     name: str
     phone: str
     email: Optional[EmailStr] = None
-    password: str  # Added
     image: Optional[str] = None
 
 class ConductorResponse(BaseModel):
@@ -57,6 +52,11 @@ class PassengerCreate(BaseModel):
     image: Optional[str] = None
 
 class PassengerResponse(BaseModel):
+    id: str
+    name: str
+    phone: str
+    email: Optional[str] = None
+    image: Optional[str] = None
     id: str
     name: str
     phone: str
